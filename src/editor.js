@@ -45,8 +45,65 @@ export class Editor {
       this._debounceUpdate();
     });
 
-    // Tab key support
+    // Keyboard shortcuts
     this.textarea.addEventListener('keydown', (e) => {
+      // Ctrl+/ -> Toggle comment
+      if ((e.ctrlKey || e.metaKey) && e.key === '/') {
+        e.preventDefault();
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const value = this.textarea.value;
+        
+        let lineStart = value.lastIndexOf('\n', start - 1) + 1;
+        let lineEnd = value.indexOf('\n', end);
+        if (lineEnd === -1) lineEnd = value.length;
+        
+        let line = value.substring(lineStart, lineEnd);
+        if (line.startsWith('<!-- ') && line.endsWith(' -->')) {
+          line = line.substring(5, line.length - 4);
+        } else {
+          line = `<!-- ${line} -->`;
+        }
+        
+        this.textarea.value = value.substring(0, lineStart) + line + value.substring(lineEnd);
+        this.textarea.selectionStart = this.textarea.selectionEnd = lineStart + line.length;
+        this._debounceUpdate();
+        return;
+      }
+
+      // Cmd/Ctrl+B -> Bold
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
+        e.preventDefault();
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const value = this.textarea.value;
+        const selected = value.substring(start, end);
+        const replaced = `**${selected}**`;
+        
+        this.textarea.value = value.substring(0, start) + replaced + value.substring(end);
+        this.textarea.selectionStart = start + 2;
+        this.textarea.selectionEnd = end + 2;
+        this._debounceUpdate();
+        return;
+      }
+
+      // Cmd/Ctrl+I -> Italic
+      if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
+        e.preventDefault();
+        const start = this.textarea.selectionStart;
+        const end = this.textarea.selectionEnd;
+        const value = this.textarea.value;
+        const selected = value.substring(start, end);
+        const replaced = `*${selected}*`;
+        
+        this.textarea.value = value.substring(0, start) + replaced + value.substring(end);
+        this.textarea.selectionStart = start + 1;
+        this.textarea.selectionEnd = end + 1;
+        this._debounceUpdate();
+        return;
+      }
+
+      // Tab key support
       if (e.key === 'Tab') {
         e.preventDefault();
         const start = this.textarea.selectionStart;
@@ -57,8 +114,36 @@ export class Editor {
           this.textarea.value.substring(end);
         this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
         this._debounceUpdate();
+        return;
       }
     });
+
+    // Sync scroll
+    const syncScroll = () => {
+      if (!this.preview || this.slides.length === 0) return;
+      const cursorPosition = this.textarea.selectionStart;
+      
+      let currentIndex = 0;
+      for (let i = 0; i < this.slides.length; i++) {
+        if (cursorPosition >= this.slides[i].offset) {
+          currentIndex = i;
+        } else {
+          break;
+        }
+      }
+
+      const targetCard = this.preview.querySelector(`[data-slide-index="${currentIndex}"]`);
+      if (targetCard) {
+        targetCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+    };
+
+    this.textarea.addEventListener('keyup', (e) => {
+      // Don't scroll on modifiers
+      if (['Control', 'Shift', 'Alt', 'Meta'].includes(e.key)) return;
+      syncScroll();
+    });
+    this.textarea.addEventListener('click', syncScroll);
   }
 
   _setupResizeObserver() {
