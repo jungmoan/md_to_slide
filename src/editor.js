@@ -127,7 +127,10 @@ export class Editor {
         if (match) {
            const imgTag = match[0];
            const textHtml = finalHtml.replace(imgTag, '');
-           finalHtml = \`<div class="split-text">\${textHtml}</div><div class="split-image">\${imgTag}</div>\`;
+           finalHtml = `
+             <div class="split-text">${textHtml}</div>
+             <div class="split-image">${imgTag}</div>
+           `;
         }
       }
 
