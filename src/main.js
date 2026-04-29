@@ -11,9 +11,9 @@ import 'highlight.js/styles/github-dark.min.css';
 import { Editor, DEFAULT_CONTENT, FULL_EXAMPLE_CONTENT } from './editor.js';
 import { Presenter } from './presenter.js';
 import { initTheme } from './theme.js';
-import { 
+import {
   saveContent, loadContent, exportFile, importFile, saveLayout, loadLayout,
-  getAllDocuments, getDocument, getCurrentDocId, setCurrentDocId, createDocument, deleteDocument 
+  getAllDocuments, getDocument, getCurrentDocId, setCurrentDocId, createDocument, deleteDocument
 } from './storage.js';
 
 // --- DOM Elements ---
@@ -91,7 +91,7 @@ document.addEventListener('click', (e) => {
 function renderDocsMenu() {
   const docs = getAllDocuments();
   const currentId = getCurrentDocId();
-  
+
   if (docs.length === 0) {
     docsMenu.innerHTML = '<div style="padding: 8px 12px; color: var(--text-muted); font-size: 0.8rem;">저장된 문서가 없습니다.</div>';
     return;
@@ -206,7 +206,7 @@ btnImage.addEventListener('click', () => {
   const value = textarea.value;
 
   const macro = `<!-- split-left -->\n![이미지 설명](이미지URL_또는_경로)\n\n### 이미지에 대한 설명\n- 내용 1\n- 내용 2\n`;
-  
+
   textarea.value = value.substring(0, start) + macro + value.substring(end);
   textarea.selectionStart = textarea.selectionEnd = start + macro.length;
   textarea.focus();

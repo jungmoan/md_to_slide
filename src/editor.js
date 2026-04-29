@@ -136,12 +136,12 @@ export class Editor {
       } else if (trimmed.includes('<!-- toc -->')) {
         finalHtml = `<div class="slide-toc">${html.replace(/<!--\s*toc\s*-->/g, '')}</div>`;
       }
-      
+
       if (trimmed.includes('<!-- animate -->')) {
         extraClass += ' slide-animate';
         finalHtml = finalHtml.replace(/<!--\s*animate\s*-->/g, '');
       }
-      
+
       let isSplit = false;
       if (trimmed.includes('<!-- split-left -->')) {
         extraClass += ' slide-split split-left';
@@ -161,9 +161,9 @@ export class Editor {
         const imgRegex = /<p>\s*(<img[^>]+>)\s*<\/p>|<img[^>]+>/i;
         const match = finalHtml.match(imgRegex);
         if (match) {
-           const imgTag = match[0];
-           const textHtml = finalHtml.replace(imgTag, '');
-           finalHtml = `
+          const imgTag = match[0];
+          const textHtml = finalHtml.replace(imgTag, '');
+          finalHtml = `
              <div class="split-text">${textHtml}</div>
              <div class="split-image">${imgTag}</div>
            `;
@@ -189,7 +189,7 @@ export class Editor {
       if (slide) slides.push(slide);
       lastIndex = match.index + match[0].length;
     }
-    
+
     // Process the last part
     const lastPart = markdown.substring(lastIndex);
     const slide = processPart(lastPart, lastIndex);
