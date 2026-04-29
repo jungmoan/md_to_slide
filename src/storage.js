@@ -112,19 +112,20 @@ export async function saveDocument(id, content, theme, layout) {
     updatedAt 
   };
 
-  // Save document
+  // Save document (Update latest state)
   await txPromise('docs', 'readwrite', store => store.put(newDoc));
+}
 
-  // Save history (Versioning) - we don't save every keystroke, maybe throttle or just save.
-  // Actually, for versioning, we save a history snapshot.
+export async function saveHistorySnapshot(id, content, theme, layout) {
+  if (!id) return;
   const historyId = generateId();
   await txPromise('history', 'readwrite', store => store.put({
     historyId,
     docId: id,
     content,
-    theme: newDoc.theme,
-    layout: newDoc.layout,
-    savedAt: updatedAt
+    theme: theme || 'midnight',
+    layout: layout || 'default',
+    savedAt: Date.now()
   }));
 }
 

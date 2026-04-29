@@ -14,7 +14,7 @@ import { initThemeDropdown, applyTheme } from './theme.js';
 import {
   saveContent, loadContent, exportFile, importFile,
   getAllDocuments, getDocument, getCurrentDocId, setCurrentDocId, createDocument, deleteDocument,
-  getDocumentSettings, updateDocumentSettings, getDocumentHistory, saveImage
+  getDocumentSettings, updateDocumentSettings, getDocumentHistory, saveHistorySnapshot, saveImage
 } from './storage.js';
 
 // --- DOM Elements ---
@@ -47,6 +47,7 @@ const modalHistoryPreview = document.getElementById('modal-history-preview');
 const btnCloseModal = document.getElementById('btn-close-modal');
 const btnModalCancel = document.getElementById('btn-modal-cancel');
 const btnModalRestore = document.getElementById('btn-modal-restore');
+const toastContainer = document.getElementById('toast-container');
 
 // Global State
 let currentLayout = 'default';
@@ -101,6 +102,39 @@ function applyLayoutUI(layout) {
     btnLayout.querySelector('span').textContent = '가운데';
   }
 }
+
+// --- Toast UI ---
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  toast.innerHTML = `
+    <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    <span>${message}</span>
+  `;
+  toastContainer.appendChild(toast);
+  
+  // Remove from DOM after animation
+  setTimeout(() => {
+    toast.remove();
+  }, 3000);
+}
+
+// --- Keyboard Shortcuts ---
+window.addEventListener('keydown', async (e) => {
+  // Cmd/Ctrl + S -> Manual Save & Versioning
+  if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+    e.preventDefault(); // Stop browser save dialog
+    
+    const id = getCurrentDocId();
+    if (id) {
+      const content = editor.getContent();
+      await saveContent(content, currentTheme, currentLayout);
+      await saveHistorySnapshot(id, content, currentTheme, currentLayout);
+      
+      showToast('성공적으로 저장되었습니다 (새 버전 생성)');
+    }
+  }
+});
 
 btnLayout.addEventListener('click', async () => {
   currentLayout = currentLayout === 'center' ? 'default' : 'center';

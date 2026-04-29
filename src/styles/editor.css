@@ -453,8 +453,15 @@
 }
 
 @keyframes pulse {
-  0%, 100% { opacity: 0.4; }
-  50% { opacity: 1; }
+
+  0%,
+  100% {
+    opacity: 0.4;
+  }
+
+  50% {
+    opacity: 1;
+  }
 }
 
 /* --- Empty State --- */
@@ -483,17 +490,17 @@
   .editor-container {
     flex-direction: column;
   }
-  
+
   .editor-panel {
     border-right: none;
     border-bottom: 1px solid var(--border);
   }
-  
+
   .toolbar {
     padding: 0 12px;
     gap: 8px;
   }
-  
+
   .btn span {
     display: none;
   }
@@ -534,7 +541,7 @@
   transform: scale(1.1);
   background: var(--accent-hover);
 }
-}
+
 
 /* --- Version History Modal --- */
 .modal-overlay {
@@ -691,4 +698,38 @@
   justify-content: flex-end;
   gap: 12px;
   background: var(--bg-secondary);
+}
+
+/* --- Toast Notifications --- */
+.toast-container {
+  position: fixed;
+  bottom: 32px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  z-index: 2000;
+  pointer-events: none;
+}
+
+.toast {
+  background: var(--accent);
+  color: #fff;
+  padding: 12px 24px;
+  border-radius: var(--radius-full);
+  box-shadow: var(--shadow-lg);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toast-in-out 3s ease-in-out forwards;
+}
+
+@keyframes toast-in-out {
+  0% { transform: translateY(20px); opacity: 0; }
+  10% { transform: translateY(0); opacity: 1; }
+  90% { transform: translateY(0); opacity: 1; }
+  100% { transform: translateY(-20px); opacity: 0; }
 }
