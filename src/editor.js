@@ -106,12 +106,29 @@ export class Editor {
         finalHtml = finalHtml.replace(/<!--\s*animate\s*-->/g, '');
       }
       
+      let isSplit = false;
       if (trimmed.includes('<!-- split-left -->')) {
         extraClass += ' slide-split split-left';
         finalHtml = finalHtml.replace(/<!--\s*split-left\s*-->/g, '');
+        isSplit = true;
       } else if (trimmed.includes('<!-- split-right -->')) {
         extraClass += ' slide-split split-right';
         finalHtml = finalHtml.replace(/<!--\s*split-right\s*-->/g, '');
+        isSplit = true;
+      } else if (trimmed.includes('<!-- split-top -->')) {
+        extraClass += ' slide-split split-top';
+        finalHtml = finalHtml.replace(/<!--\s*split-top\s*-->/g, '');
+        isSplit = true;
+      }
+
+      if (isSplit) {
+        const imgRegex = /<p>\s*(<img[^>]+>)\s*<\/p>|<img[^>]+>/i;
+        const match = finalHtml.match(imgRegex);
+        if (match) {
+           const imgTag = match[0];
+           const textHtml = finalHtml.replace(imgTag, '');
+           finalHtml = \`<div class="split-text">\${textHtml}</div><div class="split-image">\${imgTag}</div>\`;
+        }
       }
 
       if (extraClass) {
@@ -319,6 +336,15 @@ export const FULL_EXAMPLE_CONTENT = `<!-- cover -->
 - \`<!-- split-left -->\` 매크로를 사용했습니다.
 - 이미지는 좌측에, 텍스트는 우측에 배치됩니다.
 - \`<!-- split-right -->\`를 쓰면 반대로 배치됩니다.
+
+---
+
+<!-- split-top -->
+![Header Image](https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&h=300&q=80)
+
+### 상하 분할 레이아웃 (Split Top)
+- \`<!-- split-top -->\` 매크로를 사용했습니다.
+- 이미지는 상단에 넓게, 텍스트는 하단에 정렬됩니다.
 
 ---
 
