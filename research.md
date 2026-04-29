@@ -1,49 +1,20 @@
-# 리서치: 다중 문서 관리 및 새 슬라이드 기능
+# 스마트 저장 및 강제 저장 기능 리서치 결과
 
-## 1. 사용자 요구사항 변경/확장
-- **기존 슬라이드 보존**: "새 슬라이드"를 누를 때 기존 작업물이 날아가지 않도록 관리해야 함.
-- **다중 문서 저장 및 불러오기**: 여러 개의 슬라이드 문서를 로컬스토리지에 저장하고, 원할 때 불러올 수 있어야 함.
-- **자동 저장**: 현재 구현되어 있는 자동 저장 기능(`md_slide_content` 단일 키 저장)을 다중 문서 구조에 맞게 변경해야 함.
+## 1. 스마트 저장 (Smart Auto-save vs. Versioning)
+*   **문제점**: 현재 `saveDocument` 내에서 매번 `history` 테이블에 데이터를 추가하고 있어, 글자 하나를 쓸 때마다 버전이 생성되는 문제가 있음.
+*   **분석**: 
+    *   **Auto-save**: 사용자가 실시간으로 편집하는 최신 상태를 `docs` 테이블에 업데이트 (디바운스 적용).
+    *   **Versioning**: 사용자가 명시적으로 저장(`Ctrl+S`)하거나 특정 시점(복구 등)에서만 `history` 테이블에 스냅샷 저장.
+*   **해결책**: `storage.js`의 `saveDocument`에서 히스토리 저장 로직을 분리하고, 명시적 버전 저장을 위한 `saveHistorySnapshot` 함수를 신설함.
 
-## 2. 로컬 스토리지 구조 설계 (`src/storage.js`)
-기존에는 단일 문자열(`md_slide_content`)만 저장했으나, 이제 배열 형태의 문서 목록과 현재 활성화된 문서 ID를 관리해야 합니다.
+## 2. Ctrl/Cmd + S 단축키 및 브라우저 기본 동작 차단
+*   **문제점**: `Cmd+S` 입력 시 브라우저의 "페이지 저장" 창이 뜸.
+*   **분석**: `keydown` 이벤트 핸들러에서 `e.key === 's'`와 `e.metaKey`를 감지할 때 `e.preventDefault()`를 호출하지 않음.
+*   **해결책**: `main.js` 또는 `editor.js`에 전역 단축키 핸들러를 추가하고 `preventDefault()`를 통해 브라우저 동작을 차단한 뒤, 앱 자체 저장 로직을 수행함.
 
-- `md_slide_docs`: `[{ id: '1234', title: '첫 슬라이드', content: '...', updatedAt: 12345678 }]` 형태의 JSON 배열.
-- `md_slide_current_id`: 현재 열려있는 문서의 `id`.
-
-**필요한 스토리지 함수들:**
-- `getDocuments()`: 모든 문서 목록 조회.
-- `getDocument(id)`: 특정 문서 내용 조회.
-- `saveDocument(id, content, title)`: 문서 저장 (자동 저장 시 호출).
-- `createDocument(content)`: 새 문서 생성 후 ID 반환.
-- `deleteDocument(id)`: 문서 삭제.
-
-## 3. UI/UX 설계 (`index.html` & `src/main.js`)
-
-1. **상단 툴바 구성 변경**
-   ```html
-   <div class="toolbar-left">
-     <!-- 로고 -->
-     <!-- [NEW] "새 슬라이드" 버튼 -->
-     <!-- [NEW] "문서함" (dropdown 또는 modal 트리거) -->
-     <!-- 파일 가져오기 / 내보내기 -->
-   </div>
-   ```
-
-2. **문서함 (문서 목록) 표시 방법**
-   - 툴바에 "📂 문서함" 버튼을 만들고, 클릭 시 드롭다운 또는 작은 모달이 뜨게 합니다.
-   - 목록에는 `title`(마크다운의 첫 번째 `# 제목`을 추출하거나 기본값)과 수정 시간(`updatedAt`)을 표시.
-   - 목록에서 문서를 클릭하면 해당 문서가 에디터에 로드됨.
-
-3. **자동 저장 로직 업데이트**
-   - `main.js`의 `editor.onSlidesChange`에서 0.5초마다 현재 `currentDocId`에 내용을 덮어씁니다.
-   - 제목 추출: `content.match(/^#\s+(.*)/m)` 정규식을 사용하여 첫 H1을 `title`로 저장.
-
-4. **"새 슬라이드" 버튼 동작**
-   - 클릭 시 `FULL_EXAMPLE_CONTENT`를 내용으로 하는 **새로운 문서**를 `createDocument()`로 생성.
-   - `currentDocId`를 새 문서로 변경하고 에디터에 로드.
-   - 기존 작업물은 문서함에 안전하게 저장됨.
-
-## 4. 기존 단일 저장 데이터의 마이그레이션
-앱이 처음 로드될 때:
-1. `md_slide_docs`가 비어있고, 기존의 `md_slide_content`가 있다면, 이를 최초의 문서로 묶어 `md_slide_docs`에 넣어 마이그레이션합니다. 그래야 기존 유저의 데이터가 날아가지 않습니다.
+## 3. 토스트 메시지 (Toast Notification)
+*   **요구사항**: 저장 성공 시 시각적인 알림 제공.
+*   **해결책**:
+    *   HTML: 하단 중앙 또는 우상단에 `toast-container` 추가.
+    *   CSS: 부드러운 애니메이션(Fade-in/out)과 유리 질감 스타일 적용.
+    *   JS: 메시지를 매개변수로 받아 일정 시간 후 사라지는 `showToast()` 함수 구현.

@@ -1,26 +1,31 @@
 <!DOCTYPE html>
 <html lang="ko">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta name="description" content="Markdown을 유튜브 영상용 미니멀 슬라이드로 변환하는 웹앱" />
   <title>MD Slide — Markdown Presenter</title>
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='80' height='60' x='10' y='20' rx='8' fill='%237c6aff'/%3E%3Cpath d='M30 45h40M30 55h25' stroke='%23fff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="icon" type="image/svg+xml"
+    href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='80' height='60' x='10' y='20' rx='8' fill='%237c6aff'/%3E%3Cpath d='M30 45h40M30 55h25' stroke='%23fff' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E" />
 </head>
+
 <body>
   <div id="app">
     <!-- Toolbar -->
     <header class="toolbar" id="toolbar">
       <div class="toolbar-left">
         <div class="toolbar-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="4" width="20" height="14" rx="3"/>
-            <line x1="6" y1="9" x2="14" y2="9"/>
-            <line x1="6" y1="13" x2="11" y2="13"/>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="14" rx="3" />
+            <line x1="6" y1="9" x2="14" y2="9" />
+            <line x1="6" y1="13" x2="11" y2="13" />
           </svg>
           MD Slide
         </div>
-        <button class="btn btn-primary" id="btn-new" title="새 슬라이드 템플릿 불러오기" style="margin-left: 12px; font-size: 0.8rem; padding: 6px 12px;">
+        <button class="btn btn-primary" id="btn-new" title="새 슬라이드 템플릿 불러오기"
+          style="margin-left: 12px; font-size: 0.8rem; padding: 6px 12px;">
           ✨ 새 슬라이드
         </button>
         <div class="docs-dropdown-container" id="docs-dropdown-container" style="position: relative;">
@@ -33,12 +38,20 @@
         </div>
         <div class="toolbar-divider"></div>
         <button class="btn btn-ghost" id="btn-import" title="마크다운 파일 가져오기">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-          <span>가져오기</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="7 10 12 15 17 10" />
+            <line x1="12" y1="15" x2="12" y2="3" />
+          </svg>
         </button>
         <button class="btn btn-ghost" id="btn-export" title="마크다운 파일 내보내기 (Ctrl+S)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span>내보내기</span>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+            <polyline points="17 8 12 3 7 8" />
+            <line x1="12" y1="3" x2="12" y2="15" />
+          </svg>
         </button>
       </div>
       <div class="toolbar-right">
@@ -49,11 +62,19 @@
           <option value="abyss">⬛ Abyss</option>
         </select>
         <button class="btn btn-ghost" id="btn-layout" title="레이아웃 전환: 좌상단 / 가운데 정렬">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="10" y1="13" x2="14" y2="13"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" />
+            <line x1="9" y1="9" x2="15" y2="9" />
+            <line x1="10" y1="13" x2="14" y2="13" />
+          </svg>
           <span>가운데</span>
         </button>
         <button class="btn btn-primary" id="btn-present" title="슬라이드쇼 시작 (Ctrl+Enter)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+            stroke-linejoin="round">
+            <polygon points="5 3 19 12 5 21 5 3" />
+          </svg>
           <span>슬라이드쇼</span>
         </button>
       </div>
@@ -67,14 +88,32 @@
           <span class="panel-title">Markdown</span>
           <div class="panel-actions">
             <button class="btn-icon" id="btn-image" title="그림 추가 (Drag & Drop 지원)">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <polyline points="21 15 16 10 5 21" />
+              </svg>
             </button>
             <button class="btn-icon" id="btn-cover" title="커버 페이지 슬라이드 삽입">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20v-8"/><path d="M8 12l4-4 4 4"/><rect x="4" y="4" width="16" height="16" rx="2" ry="2"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 20v-8" />
+                <path d="M8 12l4-4 4 4" />
+                <rect x="4" y="4" width="16" height="16" rx="2" ry="2" />
+              </svg>
             </button>
             <div class="toc-dropdown" id="toc-dropdown">
               <button class="btn-icon" id="btn-toc" title="넘버링/목차 슬라이드 삽입">
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="8" y1="6" x2="21" y2="6" />
+                  <line x1="8" y1="12" x2="21" y2="12" />
+                  <line x1="8" y1="18" x2="21" y2="18" />
+                  <line x1="3" y1="6" x2="3.01" y2="6" />
+                  <line x1="3" y1="12" x2="3.01" y2="12" />
+                  <line x1="3" y1="18" x2="3.01" y2="18" />
+                </svg>
               </button>
               <div class="toc-dropdown-menu" id="toc-menu">
                 <button class="toc-menu-item" data-toc="vertical">📋 목차 (세로)</button>
@@ -82,16 +121,16 @@
               </div>
             </div>
             <button class="btn-icon" id="btn-clear" title="전체 내용 삭제">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6" />
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+              </svg>
             </button>
           </div>
         </div>
-        <textarea
-          class="markdown-editor"
-          id="markdown-editor"
-          placeholder="여기에 Markdown을 입력하세요...&#10;&#10;--- 로 슬라이드를 구분합니다."
-          spellcheck="false"
-        ></textarea>
+        <textarea class="markdown-editor" id="markdown-editor"
+          placeholder="여기에 Markdown을 입력하세요...&#10;&#10;--- 로 슬라이드를 구분합니다." spellcheck="false"></textarea>
       </section>
 
       <!-- Right: Preview -->
@@ -151,4 +190,5 @@
 
   <script type="module" src="/src/main.js"></script>
 </body>
+
 </html>
