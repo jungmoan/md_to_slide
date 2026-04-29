@@ -183,16 +183,6 @@
   display: none;
 }
 
-/* --- Card inner (preview mode) - scaled down typography --- */
-.slide-card-inner h1 { font-size: 1.6em; }
-.slide-card-inner h2 { font-size: 1.2em; }
-.slide-card-inner h3 { font-size: 1em; }
-.slide-card-inner p { font-size: 0.85em; line-height: 1.5; }
-.slide-card-inner li { font-size: 0.8em; line-height: 1.5; }
-.slide-card-inner pre code { font-size: 0.7em; padding: 8px 12px; }
-.slide-card-inner blockquote { padding: 6px 12px; margin: 6px 0; }
-.slide-card-inner table { font-size: 0.7em; }
-.slide-card-inner th, .slide-card-inner td { padding: 4px 8px; }
 
 /* ===========================
    Cover Slide Layout
@@ -250,12 +240,6 @@
   display: none; /* Not recommended for cover slides */
 }
 
-/* Cover in Preview Cards (scaled) */
-.slide-card-inner .slide-cover h1 { font-size: 2em; letter-spacing: -0.5px; }
-.slide-card-inner .slide-cover h2,
-.slide-card-inner .slide-cover h3 { font-size: 1.2em; }
-.slide-card-inner .slide-cover p,
-.slide-card-inner .slide-cover blockquote { font-size: 0.8em; }
 
 /* ===========================
    TOC Slide — Vertical Layout
@@ -488,21 +472,6 @@
   font-size: 0.75em;
 }
 
-/* ===========================
-   TOC in Preview Cards (scaled)
-   =========================== */
-
-.slide-card-inner .slide-toc ol::before { display: none; }
-.slide-card-inner .slide-toc > ol > li::before,
-.slide-card-inner .slide-toc > div > ol > li::before { font-size: 1em; min-width: 24px; }
-.slide-card-inner .slide-toc > ol > li,
-.slide-card-inner .slide-toc > div > ol > li { gap: 6px; margin-bottom: 6px; }
-.slide-card-inner .slide-toc li > ul > li { font-size: 0.7em; padding-left: 10px; }
-.slide-card-inner .slide-toc li > ul > li::before { width: 3px; height: 3px; }
-.slide-card-inner .slide-toc-horizontal > ol > li,
-.slide-card-inner .slide-toc-horizontal > div > ol > li { padding: 8px 10px; min-width: 50px; gap: 4px; }
-.slide-card-inner .slide-toc-horizontal > ol > li::before,
-.slide-card-inner .slide-toc-horizontal > div > ol > li::before { font-size: 1em; }
 
 /* ===========================
    Fragment Animations
@@ -588,7 +557,3 @@
   text-align: center;
 }
 
-/* Scale split layouts in preview */
-.slide-card-inner .slide-split {
-  gap: 10px;
-}
