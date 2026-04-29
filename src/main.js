@@ -40,6 +40,14 @@ const tocDropdown = document.getElementById('toc-dropdown');
 const tocMenu = document.getElementById('toc-menu');
 const fileInput = document.getElementById('file-input');
 
+// --- Modal Elements ---
+const historyModal = document.getElementById('history-modal');
+const modalHistoryList = document.getElementById('modal-history-list');
+const modalHistoryPreview = document.getElementById('modal-history-preview');
+const btnCloseModal = document.getElementById('btn-close-modal');
+const btnModalCancel = document.getElementById('btn-modal-cancel');
+const btnModalRestore = document.getElementById('btn-modal-restore');
+
 // Global State
 let currentLayout = 'default';
 let currentTheme = 'midnight';
@@ -430,6 +438,9 @@ textareaEl.addEventListener('paste', async (e) => {
 });
 
 // --- Version History UI ---
+let selectedVersionData = null;
+let currentDocIdForModal = null;
+
 async function showVersionHistory(docId) {
   const history = await getDocumentHistory(docId);
   if (!history || history.length === 0) {
@@ -437,33 +448,78 @@ async function showVersionHistory(docId) {
     return;
   }
   
-  let msg = '복원할 버전을 선택하세요 (취소: 숫자 이외 입력)\n\n';
-  history.forEach((h, i) => {
-    msg += `[${i + 1}] ${new Date(h.savedAt).toLocaleString()}\n`;
+  currentDocIdForModal = docId;
+  selectedVersionData = null;
+  btnModalRestore.disabled = true;
+  modalHistoryPreview.innerHTML = '<div class="empty-msg">버전을 선택하여 내용을 확인하세요</div>';
+  
+  // Render history list
+  modalHistoryList.innerHTML = history.reverse().map((h, i) => {
+    const dateObj = new Date(h.savedAt);
+    const dateStr = dateObj.toLocaleDateString();
+    const timeStr = dateObj.toLocaleTimeString();
+    return `
+      <div class="history-item" data-index="${history.length - 1 - i}">
+        <div class="history-item-date">${dateStr}</div>
+        <div class="history-item-time">${timeStr}</div>
+      </div>
+    `;
+  }).join('');
+  
+  // Bind clicks to items
+  const items = modalHistoryList.querySelectorAll('.history-item');
+  items.forEach(item => {
+    item.addEventListener('click', () => {
+      items.forEach(i => i.classList.remove('active'));
+      item.classList.add('active');
+      
+      const idx = parseInt(item.getAttribute('data-index'));
+      // history was reversed for display, but original indices are kept via data-index
+      const selected = history.find((_, index) => index === idx);
+      if (selected) {
+        selectedVersionData = selected;
+        modalHistoryPreview.textContent = selected.content;
+        btnModalRestore.disabled = false;
+      }
+    });
   });
   
-  const choice = prompt(msg);
-  const index = parseInt(choice, 10) - 1;
-  if (!isNaN(index) && index >= 0 && index < history.length) {
-    const selectedVersion = history[index];
-    if (confirm('선택한 버전으로 복원하시겠습니까? 현재 상태는 새로운 버전으로 자동 저장됩니다.')) {
-      // Save current state as a new version
-      await saveContent(editor.getContent(), currentTheme, currentLayout);
-      
-      // Apply selected version
-      currentTheme = selectedVersion.theme || 'midnight';
-      currentLayout = selectedVersion.layout || 'default';
-      applyTheme(currentTheme);
-      themeSelect.value = currentTheme;
-      applyLayoutUI(currentLayout);
-      editor.setContent(selectedVersion.content);
-      
-      // Update DB
-      await updateDocumentSettings(docId, currentTheme, currentLayout);
-      await saveContent(selectedVersion.content, currentTheme, currentLayout);
-      
-      statusEl.textContent = '선택한 버전으로 복원되었습니다';
-    }
-  }
+  historyModal.classList.add('open');
 }
+
+function closeHistoryModal() {
+  historyModal.classList.remove('open');
+}
+
+btnCloseModal.addEventListener('click', closeHistoryModal);
+btnModalCancel.addEventListener('click', closeHistoryModal);
+
+// Close on outside click
+historyModal.addEventListener('click', (e) => {
+  if (e.target === historyModal) closeHistoryModal();
+});
+
+btnModalRestore.addEventListener('click', async () => {
+  if (!selectedVersionData || !currentDocIdForModal) return;
+  
+  if (confirm('선택한 버전으로 복원하시겠습니까? 현재 상태는 새로운 버전으로 자동 저장됩니다.')) {
+    // Save current state as a new version
+    await saveContent(editor.getContent(), currentTheme, currentLayout);
+    
+    // Apply selected version
+    currentTheme = selectedVersionData.theme || 'midnight';
+    currentLayout = selectedVersionData.layout || 'default';
+    applyTheme(currentTheme);
+    themeSelect.value = currentTheme;
+    applyLayoutUI(currentLayout);
+    editor.setContent(selectedVersionData.content);
+    
+    // Update DB
+    await updateDocumentSettings(currentDocIdForModal, currentTheme, currentLayout);
+    await saveContent(selectedVersionData.content, currentTheme, currentLayout);
+    
+    statusEl.textContent = '선택한 버전으로 복원되었습니다';
+    closeHistoryModal();
+  }
+});
 
