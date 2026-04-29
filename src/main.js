@@ -492,13 +492,13 @@ async function showVersionHistory(docId) {
   btnModalRestore.disabled = true;
   modalHistoryPreview.innerHTML = '<div class="empty-msg">버전을 선택하여 내용을 확인하세요</div>';
   
-  // Render history list
-  modalHistoryList.innerHTML = history.reverse().map((h, i) => {
+  // Render history list (newest first)
+  modalHistoryList.innerHTML = history.map((h, i) => {
     const dateObj = new Date(h.savedAt);
     const dateStr = dateObj.toLocaleDateString();
     const timeStr = dateObj.toLocaleTimeString();
     return `
-      <div class="history-item" data-index="${history.length - 1 - i}">
+      <div class="history-item" data-index="${i}">
         <div class="history-item-date">${dateStr}</div>
         <div class="history-item-time">${timeStr}</div>
       </div>
@@ -513,8 +513,7 @@ async function showVersionHistory(docId) {
       item.classList.add('active');
       
       const idx = parseInt(item.getAttribute('data-index'));
-      // history was reversed for display, but original indices are kept via data-index
-      const selected = history.find((_, index) => index === idx);
+      const selected = history[idx];
       if (selected) {
         selectedVersionData = selected;
         modalHistoryPreview.textContent = selected.content;
