@@ -1,0 +1,156 @@
+/* ===========================
+   Global Design System
+   =========================== */
+
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;500;700&display=swap');
+
+/* --- CSS Custom Properties --- */
+:root {
+  /* Midnight Theme (Default) */
+  --bg-primary: #08080d;
+  --bg-secondary: #0e0e16;
+  --bg-surface: #16162a;
+  --bg-elevated: #1e1e38;
+  --text-primary: #ebebf0;
+  --text-secondary: #7a7a95;
+  --text-muted: #4a4a62;
+  --accent: #7c6aff;
+  --accent-hover: #9182ff;
+  --accent-glow: rgba(124, 106, 255, 0.25);
+  --accent-subtle: rgba(124, 106, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.06);
+  --border-active: rgba(124, 106, 255, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.6);
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --transition-fast: 150ms ease;
+  --transition-normal: 300ms ease;
+  --transition-slow: 500ms ease;
+
+  /* Typography */
+  --font-body: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
+  --font-size-xs: 0.75rem;
+  --font-size-sm: 0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg: 1.125rem;
+  --font-size-xl: 1.5rem;
+  --font-size-2xl: 2rem;
+  --font-size-3xl: 2.5rem;
+}
+
+/* --- Paper Theme --- */
+[data-theme="paper"] {
+  --bg-primary: #f8f7f4;
+  --bg-secondary: #ffffff;
+  --bg-surface: #eeecea;
+  --bg-elevated: #e4e2df;
+  --text-primary: #1a1a1a;
+  --text-secondary: #6b6b6b;
+  --text-muted: #9a9a9a;
+  --accent: #2563eb;
+  --accent-hover: #3b82f6;
+  --accent-glow: rgba(37, 99, 235, 0.15);
+  --accent-subtle: rgba(37, 99, 235, 0.06);
+  --border: rgba(0, 0, 0, 0.08);
+  --border-active: rgba(37, 99, 235, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.12);
+}
+
+/* --- Terminal Theme --- */
+[data-theme="terminal"] {
+  --bg-primary: #0c0c0c;
+  --bg-secondary: #121212;
+  --bg-surface: #1a1a1a;
+  --bg-elevated: #242424;
+  --text-primary: #00ff88;
+  --text-secondary: #00cc6a;
+  --text-muted: #006633;
+  --accent: #00ff88;
+  --accent-hover: #33ffaa;
+  --accent-glow: rgba(0, 255, 136, 0.2);
+  --accent-subtle: rgba(0, 255, 136, 0.06);
+  --border: rgba(0, 255, 136, 0.1);
+  --border-active: rgba(0, 255, 136, 0.3);
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 4px 16px rgba(0, 0, 0, 0.6);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.7);
+}
+
+/* --- Abyss Theme (Pure Black, YouTube-optimized) --- */
+[data-theme="abyss"] {
+  --bg-primary: #000000;
+  --bg-secondary: #050505;
+  --bg-surface: #000000;
+  --bg-elevated: #111111;
+  --text-primary: #f0f0f0;
+  --text-secondary: #b0b0b0;
+  --text-muted: #555555;
+  --accent: #ff9f43;
+  --accent-hover: #ffbe76;
+  --accent-glow: rgba(255, 159, 67, 0.2);
+  --accent-subtle: rgba(255, 159, 67, 0.06);
+  --border: rgba(255, 255, 255, 0.05);
+  --border-active: rgba(255, 159, 67, 0.3);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+}
+
+/* --- Global Reset --- */
+*,
+*::before,
+*::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  font-family: var(--font-body);
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  line-height: 1.6;
+  overflow: hidden;
+  height: 100vh;
+  transition: background var(--transition-normal), color var(--transition-normal);
+}
+
+/* --- Scrollbar --- */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--text-muted);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--text-secondary);
+}
+
+/* --- Utility --- */
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+}
