@@ -195,14 +195,80 @@
 .slide-card-inner th, .slide-card-inner td { padding: 4px 8px; }
 
 /* ===========================
+   Cover Slide Layout
+   =========================== */
+
+.slide-cover {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+  height: 100% !important;
+  width: 100% !important;
+  padding: 0 20px;
+}
+
+.slide-cover h1 {
+  font-size: 3.5em;
+  font-weight: 900;
+  margin-bottom: 0.2em;
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  background: linear-gradient(135deg, var(--text-primary) 0%, var(--accent) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: var(--text-primary); /* fallback */
+}
+
+.slide-cover h2,
+.slide-cover h3 {
+  font-size: 1.8em;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-top: 0.5em;
+  margin-bottom: 0.5em;
+  letter-spacing: -0.5px;
+}
+
+.slide-cover p,
+.slide-cover blockquote {
+  font-size: 1.1em;
+  color: var(--text-muted);
+  opacity: 0.8;
+  max-width: 80%;
+  margin: 1em auto 0;
+  border: none; /* remove blockquote border for cover */
+  background: transparent;
+  padding: 0;
+}
+
+.slide-cover ul,
+.slide-cover ol,
+.slide-cover pre,
+.slide-cover table {
+  display: none; /* Not recommended for cover slides */
+}
+
+/* Cover in Preview Cards (scaled) */
+.slide-card-inner .slide-cover h1 { font-size: 2em; letter-spacing: -0.5px; }
+.slide-card-inner .slide-cover h2,
+.slide-card-inner .slide-cover h3 { font-size: 1.2em; }
+.slide-card-inner .slide-cover p,
+.slide-card-inner .slide-cover blockquote { font-size: 0.8em; }
+
+/* ===========================
    TOC Slide — Vertical Layout
    =========================== */
 
 .slide-toc {
-  height: 100%;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  height: 100% !important;
+  width: 100% !important;
+  padding: 0 40px;
 }
 
 .slide-toc h2 {
@@ -330,11 +396,11 @@
    =========================== */
 
 .slide-toc-horizontal {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
 }
 
 .slide-toc-horizontal h2 {
@@ -355,6 +421,13 @@
 /* Remove vertical line for horizontal */
 .slide-toc-horizontal ol::before {
   display: none;
+}
+
+/* Limit nesting in horizontal cards */
+@media (max-width: 800px) {
+  .slide-toc-horizontal .toc-list > li > ul > li > ul {
+    display: none;
+  }
 }
 
 /* Horizontal card items */
@@ -431,3 +504,64 @@
 .slide-card-inner .slide-toc-horizontal > ol > li::before,
 .slide-card-inner .slide-toc-horizontal > div > ol > li::before { font-size: 1em; }
 
+/* ===========================
+   Fragment Animations
+   =========================== */
+
+.slide-animate .fragment {
+  opacity: 0;
+  transform: translateY(10px);
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.slide-animate .fragment.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Skip fragment transition in preview cards */
+.slide-card-inner .slide-animate .fragment {
+  opacity: 1 !important;
+  transform: none !important;
+  transition: none !important;
+}
+
+/* ===========================
+   Split Layouts
+   =========================== */
+
+.slide-split {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  gap: 40px;
+}
+
+.slide-split > p:has(img) {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 0;
+}
+
+.slide-split > p:has(img) img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+}
+
+.slide-split.split-left > p:has(img) {
+  order: 2;
+}
+
+.slide-split.split-right > p:has(img) {
+  order: -1;
+}
+
+/* Scale split layouts in preview */
+.slide-card-inner .slide-split {
+  gap: 10px;
+}

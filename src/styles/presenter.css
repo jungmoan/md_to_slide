@@ -196,6 +196,42 @@
   max-width: 90%;
 }
 
+/* --- Cover/TOC layout overrides: keep their own layout regardless of center mode --- */
+[data-layout="center"] .slide-content .slide-cover {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+
+[data-layout="center"] .slide-content .slide-toc {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: flex-start !important;
+  text-align: left !important;
+}
+
+[data-layout="center"] .slide-content .slide-toc ol,
+[data-layout="center"] .slide-content .slide-toc ul {
+  text-align: left;
+  display: block;
+}
+
+[data-layout="center"] .slide-content .slide-toc-horizontal {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+
+[data-layout="center"] .slide-content .slide-toc-horizontal ol {
+  display: flex;
+}
+
+
 /* Preview cards: center-aligned */
 [data-layout="center"] .slide-card-inner {
   display: flex;
