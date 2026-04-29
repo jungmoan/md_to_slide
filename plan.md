@@ -1,68 +1,58 @@
-# 구현 계획: 다중 문서 관리 및 새 슬라이드(풀옵션 템플릿) 기능
+# 마크다운 에디터 고도화 구현 계획
 
-## 개요
-기존 데이터가 유실되지 않도록 **다중 문서 관리(문서함) 시스템**을 도입합니다. "새 슬라이드" 생성 시 기존 내용은 안전하게 보존되며, 여러 문서를 로컬스토리지에 저장하고 자유롭게 전환할 수 있습니다. 변경 사항은 계속해서 자동으로 저장됩니다.
+본 계획은 에디터의 사용성(Shortcuts, Undo/Redo)과 시각적 일관성(Tooltips, Layout)을 개선하기 위한 상세 절차를 담고 있습니다.
 
-> [!IMPORTANT]
-> 로컬스토리지의 저장 구조가 배열(다중 문서) 형태로 변경됩니다. 기존 작성하시던 데이터는 최초 1회 자동으로 마이그레이션 되어 보존됩니다.
+## 1. 접근 방식
 
----
-
-## 1. 스토리지 구조 및 로직 개편 (`src/storage.js`)
-
-기존의 단일 텍스트 저장 방식(`md_slide_content`)을 **다중 문서(JSON 배열)** 방식으로 확장합니다.
-
-### 1.1 데이터 구조
-- `md_slide_docs`: `[{ id: '170000000', title: '제목', content: '...', updatedAt: 170000000 }]`
-- `md_slide_current_id`: 현재 열려있는 슬라이드의 `id`
-
-### 1.2 마이그레이션 로직
-앱 구동 시 `md_slide_docs`가 없는데 기존 `md_slide_content` 데이터가 있다면, 이를 최초의 문서 객체로 변환하여 저장합니다.
-
-### 1.3 내보낼 함수들
-- `getAllDocuments()`: 문서 목록 최신순 반환
-- `getDocument(id)`: 특정 문서 로드
-- `saveDocument(id, content, title)`: 현재 문서 자동 저장 (마크다운의 첫 `# ` 헤딩을 파싱하여 title 지정)
-- `createDocument(content)`: 새 문서 생성 (새로운 ID 발급)
-- `deleteDocument(id)`: 특정 문서 삭제
+1.  **에디터 기능 고도화 (`src/editor.js`)**:
+    *   볼드/이탤릭 토글 로직을 스마트하게 변경 (주변 문맥 파악).
+    *   커스텀 Undo/Redo 매니저 구현 및 키 바인딩.
+2.  **UI/UX 보강 (`index.html`, `src/styles/editor.css`)**:
+    *   버튼 툴팁 텍스트를 사용자가 이해하기 쉬운 명칭으로 통일.
+    *   헤더 바의 높이를 고정하여 좌우 패널의 시각적 균형 유지.
 
 ---
 
-## 2. 모든 기능이 포함된 예시 템플릿 (`src/editor.js`)
+## 2. 세부 구현 단계
 
-`src/editor.js` 하단에 모든 기능을 망라하는 `FULL_EXAMPLE_CONTENT` 상수를 정의합니다.
-이 예시에는 `<!-- cover -->`, `<!-- toc-h -->`, `<!-- split-left/right -->`, `<!-- animate -->` 등 MD Slide가 지원하는 모든 레이아웃과 매크로 기능이 주석과 함께 포함됩니다.
+### 단계 1: 볼드/이탤릭 토글 로직 개선
+*   **파일**: `src/editor.js`
+*   **변경 내용**: `Ctrl+B`, `Ctrl+I` 단축키 핸들러 내에서 현재 선택 영역 및 주변 텍스트를 검사하여 마크다운 기호(`**`, `*`)가 있으면 제거, 없으면 추가하도록 수정.
+*   **코드 스니펫**:
+    ```javascript
+    // Bold 토글 예시
+    if (isWrappedWithStars) {
+      // 제거 로직
+    } else {
+      // 추가 로직
+    }
+    ```
 
----
+### 단계 2: Undo/Redo 기능 구현
+*   **파일**: `src/editor.js`
+*   **변경 내용**:
+    *   `Editor` 생성자에서 `history` 및 `redoStack` 초기화.
+    *   `saveHistory()` 메서드 추가 및 입력 발생 시 호출.
+    *   `Ctrl+Z`, `Ctrl+Shift+Z` (또는 `Ctrl+Y`) 단축키 구현.
 
-## 3. UI 및 이벤트 연동 (`index.html`, `src/main.js`, `src/styles/editor.css`)
-
-### 3.1 툴바 버튼 추가 (`index.html`)
-상단 툴바 좌측 영역에 **"새 슬라이드"** 버튼과 **"문서함"** 드롭다운 버튼을 추가합니다.
-
-```html
-<!-- 상단 툴바 예시 -->
-<div class="toolbar-left">
-  <!-- 로고 -->
-  <button class="btn btn-primary" id="btn-new">✨ 새 슬라이드</button>
-  
-  <div class="docs-dropdown" id="docs-dropdown">
-    <button class="btn btn-ghost" id="btn-docs">📂 문서함</button>
-    <div class="docs-menu" id="docs-menu">
-      <!-- 동적으로 문서 목록 렌더링 -->
-    </div>
-  </div>
-  
-  <div class="toolbar-divider"></div>
-  <!-- 가져오기 / 내보내기 -->
-</div>
-```
-
-### 3.2 이벤트 동작 (`src/main.js`)
-- **자동 저장**: `editor.onSlidesChange` 이벤트 발생 시(0.5초 디바운스), 현재 활성화된 문서 ID(`currentDocId`)로 내용을 덮어씌웁니다. 마크다운의 첫 번째 `# 제목`을 추출하여 저장소의 `title`도 업데이트합니다.
-- **새 슬라이드 버튼**: 클릭 시 `createDocument(FULL_EXAMPLE_CONTENT)`를 호출하여 새 문서를 만들고, 에디터 화면을 해당 문서로 즉시 교체합니다. 기존 작업물은 안전하게 백그라운드에 저장되어 있습니다.
-- **문서함 드롭다운**: 버튼 클릭 시 저장된 모든 문서 목록(`title` 및 `수정일자` 표시)이 나타납니다. 다른 문서를 클릭하면 그 즉시 해당 문서 내용이 로드됩니다. 문서 우측에는 작은 휴지통 아이콘을 두어 삭제 기능도 지원합니다.
+### 단계 3: 버튼 툴팁 및 UI 정렬 수정
+*   **파일**: `index.html`, `src/styles/editor.css`
+*   **변경 내용**:
+    *   `index.html`: `btn-image`, `btn-cover`, `btn-toc`, `btn-clear`의 `title` 속성을 사용자 친화적으로 수정.
+    *   `editor.css`: `.panel-header`에 `height: 48px` 고정값 적용 및 내부 요소 중앙 정렬.
 
 ---
 
-위 계획으로 **문서함 및 새 슬라이드 버튼**을 구현하고자 합니다. **내용을 확인하시고 피드백이나 "구현해"라고 지시해주시면 즉시 개발을 시작**하겠습니다.
+## 3. 고려 사항 및 트레이드 오프
+*   **Undo 스택 크기**: 메모리 사용량을 고려하여 최대 50회 정도로 제한.
+*   **Native Undo 브레이킹**: JS로 값을 강제 주입하면 브라우저 기본 Undo(`Ctrl+Z`)는 작동하지 않게 되므로, 자체 구현한 Undo 로직이 이를 완벽히 대체해야 함.
+
+---
+
+## 4. 체크리스트 (구현 단계)
+
+- [x] 단계 1: 볼드/이탤릭 토글 로직 개선
+- [ ] 단계 2: Undo/Redo 기능 구현 및 연동
+- [ ] 단계 3: 버튼 툴팁 상세화
+- [ ] 단계 4: 패널 헤더 높이 일원화 (CSS 수정)
+- [ ] 단계 5: 최종 기능 동작 확인 및 커밋

@@ -79,11 +79,24 @@ export class Editor {
         const end = this.textarea.selectionEnd;
         const value = this.textarea.value;
         const selected = value.substring(start, end);
-        const replaced = `**${selected}**`;
         
-        this.textarea.value = value.substring(0, start) + replaced + value.substring(end);
-        this.textarea.selectionStart = start + 2;
-        this.textarea.selectionEnd = end + 2;
+        if (selected.startsWith('**') && selected.endsWith('**') && selected.length >= 4) {
+          // Remove internal markers
+          const unwrap = selected.substring(2, selected.length - 2);
+          this.textarea.value = value.substring(0, start) + unwrap + value.substring(end);
+          this.textarea.selectionStart = start;
+          this.textarea.selectionEnd = end - 4;
+        } else if (value.substring(start - 2, start) === '**' && value.substring(end, end + 2) === '**') {
+          // Remove external markers
+          this.textarea.value = value.substring(0, start - 2) + selected + value.substring(end + 2);
+          this.textarea.selectionStart = start - 2;
+          this.textarea.selectionEnd = end - 2;
+        } else {
+          // Add markers
+          this.textarea.value = value.substring(0, start) + `**${selected}**` + value.substring(end);
+          this.textarea.selectionStart = start + 2;
+          this.textarea.selectionEnd = end + 2;
+        }
         this._debounceUpdate();
         return;
       }
@@ -95,11 +108,24 @@ export class Editor {
         const end = this.textarea.selectionEnd;
         const value = this.textarea.value;
         const selected = value.substring(start, end);
-        const replaced = `*${selected}*`;
-        
-        this.textarea.value = value.substring(0, start) + replaced + value.substring(end);
-        this.textarea.selectionStart = start + 1;
-        this.textarea.selectionEnd = end + 1;
+
+        if (selected.startsWith('*') && selected.endsWith('*') && selected.length >= 2 && !selected.startsWith('**')) {
+          // Remove internal markers
+          const unwrap = selected.substring(1, selected.length - 1);
+          this.textarea.value = value.substring(0, start) + unwrap + value.substring(end);
+          this.textarea.selectionStart = start;
+          this.textarea.selectionEnd = end - 2;
+        } else if (value.substring(start - 1, start) === '*' && value.substring(end, end + 1) === '*' && value.substring(start - 2, start) !== '**') {
+          // Remove external markers
+          this.textarea.value = value.substring(0, start - 1) + selected + value.substring(end + 1);
+          this.textarea.selectionStart = start - 1;
+          this.textarea.selectionEnd = end - 1;
+        } else {
+          // Add markers
+          this.textarea.value = value.substring(0, start) + `*${selected}*` + value.substring(end);
+          this.textarea.selectionStart = start + 1;
+          this.textarea.selectionEnd = end + 1;
+        }
         this._debounceUpdate();
         return;
       }
