@@ -66,6 +66,11 @@ async function initApp() {
   }
   
   editor.setContent(saved || DEFAULT_CONTENT);
+
+  // Auto-save on input
+  textareaEl.addEventListener('input', () => {
+    saveContent(textareaEl.value, currentTheme, currentLayout);
+  });
   
   // Theme & Layout
   initThemeDropdown(themeSelect, async (theme) => {
@@ -503,10 +508,14 @@ btnModalRestore.addEventListener('click', async () => {
   if (!selectedVersionData || !currentDocIdForModal) return;
   
   if (confirm('선택한 버전으로 복원하시겠습니까? 현재 상태는 새로운 버전으로 자동 저장됩니다.')) {
-    // Save current state as a new version
+    // 1. Ensure current document is updated in state if different
+    const idToRestore = currentDocIdForModal;
+    setCurrentDocId(idToRestore);
+    
+    // 2. Save current editor state to its own history before overwriting (optional but safe)
     await saveContent(editor.getContent(), currentTheme, currentLayout);
     
-    // Apply selected version
+    // 3. Apply selected version to local state
     currentTheme = selectedVersionData.theme || 'midnight';
     currentLayout = selectedVersionData.layout || 'default';
     applyTheme(currentTheme);
@@ -514,9 +523,9 @@ btnModalRestore.addEventListener('click', async () => {
     applyLayoutUI(currentLayout);
     editor.setContent(selectedVersionData.content);
     
-    // Update DB
-    await updateDocumentSettings(currentDocIdForModal, currentTheme, currentLayout);
-    await saveContent(selectedVersionData.content, currentTheme, currentLayout);
+    // 4. Update DB for the target document
+    await updateDocumentSettings(idToRestore, currentTheme, currentLayout);
+    await saveContent(selectedVersionData.content, currentTheme, currentLayout, idToRestore);
     
     statusEl.textContent = '선택한 버전으로 복원되었습니다';
     closeHistoryModal();

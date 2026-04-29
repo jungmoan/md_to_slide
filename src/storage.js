@@ -166,10 +166,10 @@ export async function loadContent() {
   return null;
 }
 
-export async function saveContent(markdown, theme, layout) {
-  const currentId = getCurrentDocId();
-  if (currentId) {
-    await saveDocument(currentId, markdown, theme, layout);
+export async function saveContent(markdown, theme, layout, id) {
+  const targetId = id || getCurrentDocId();
+  if (targetId) {
+    await saveDocument(targetId, markdown, theme, layout);
   } else {
     await createDocument(markdown);
   }
@@ -197,12 +197,17 @@ export async function updateDocumentSettings(id, theme, layout) {
 
 // History API
 export async function getDocumentHistory(docId) {
+  if (!docId) return [];
   const db = await initDB();
   return new Promise((resolve, reject) => {
     const tx = db.transaction('history', 'readonly');
-    const index = tx.objectStore('history').index('docId');
-    const req = index.getAll(docId);
-    req.onsuccess = (e) => resolve(e.target.result.sort((a, b) => b.savedAt - a.savedAt));
+    const store = tx.objectStore('history');
+    const index = store.index('docId');
+    const req = index.getAll(IDBKeyRange.only(docId));
+    req.onsuccess = (e) => {
+      const result = e.target.result || [];
+      resolve(result.sort((a, b) => b.savedAt - a.savedAt));
+    };
     req.onerror = (e) => reject(e.target.error);
   });
 }
