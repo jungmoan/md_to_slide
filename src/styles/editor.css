@@ -389,7 +389,6 @@
   transition: all var(--transition-fast);
   position: relative;
   flex-shrink: 0;
-  container-type: inline-size;
 }
 
 .slide-card:hover {
@@ -404,7 +403,7 @@
   padding: 60px 80px;
   overflow: hidden;
   transform-origin: top left;
-  transform: scale(calc(100cqi / 1280));
+  transform: scale(var(--slide-scale, 0.4));
 }
 
 .slide-card-number {

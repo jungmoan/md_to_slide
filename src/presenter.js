@@ -13,6 +13,7 @@ export class Presenter {
     this.isActive = false;
     this._keyHandler = null;
     this._clickHandler = null;
+    this._resizeObserver = null;
   }
 
   start(slides, startIndex = 0) {
@@ -80,6 +81,19 @@ export class Presenter {
     this.counterEl = this.overlay.querySelector('#nav-counter');
     this.prevBtn = this.overlay.querySelector('#nav-prev');
     this.nextBtn = this.overlay.querySelector('#nav-next');
+
+    // Set up ResizeObserver for dynamic scale
+    const frameEl = this.overlay.querySelector('.slide-frame');
+    this._resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const frameWidth = entry.contentRect.width;
+        const scale = frameWidth / 1280;
+        if (this.contentEl) {
+          this.contentEl.style.setProperty('--slide-scale', scale);
+        }
+      }
+    });
+    this._resizeObserver.observe(frameEl);
 
     // Nav button events
     this.prevBtn.addEventListener('click', (e) => {
@@ -265,6 +279,12 @@ export class Presenter {
   exit() {
     this.isActive = false;
     this._unbindEvents();
+
+    // Clean up ResizeObserver
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
 
     // Exit fullscreen if active
     if (document.fullscreenElement) {

@@ -37,7 +37,6 @@
   box-shadow: var(--shadow-lg), 0 0 60px var(--accent-glow);
   overflow: hidden;
   position: relative;
-  container-type: inline-size;
 }
 
 .slide-content {
@@ -48,7 +47,7 @@
   opacity: 1;
   transition: opacity var(--transition-normal);
   transform-origin: top left;
-  transform: scale(calc(100cqi / 1280));
+  transform: scale(var(--slide-scale, 1));
 }
 
 .slide-content.fade-out { opacity: 0; }

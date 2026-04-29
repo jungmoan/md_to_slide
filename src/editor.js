@@ -34,8 +34,10 @@ export class Editor {
     this.slides = [];
     this.debounceTimer = null;
     this.onSlidesChange = null; // callback
+    this._resizeObserver = null;
 
     this._bindEvents();
+    this._setupResizeObserver();
   }
 
   _bindEvents() {
@@ -55,6 +57,40 @@ export class Editor {
           this.textarea.value.substring(end);
         this.textarea.selectionStart = this.textarea.selectionEnd = start + 2;
         this._debounceUpdate();
+      }
+    });
+  }
+
+  _setupResizeObserver() {
+    this._resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        const card = entry.target;
+        const cardWidth = entry.contentRect.width;
+        const scale = cardWidth / 1280;
+        const inner = card.querySelector('.slide-card-inner');
+        if (inner) {
+          inner.style.setProperty('--slide-scale', scale);
+        }
+      }
+    });
+  }
+
+  _updateCardScales() {
+    if (!this.preview) return;
+    // Disconnect previous observations
+    this._resizeObserver.disconnect();
+    // Observe all slide cards
+    const cards = this.preview.querySelectorAll('.slide-card');
+    cards.forEach((card) => {
+      this._resizeObserver.observe(card);
+      // Set initial scale immediately
+      const cardWidth = card.clientWidth;
+      if (cardWidth > 0) {
+        const scale = cardWidth / 1280;
+        const inner = card.querySelector('.slide-card-inner');
+        if (inner) {
+          inner.style.setProperty('--slide-scale', scale);
+        }
       }
     });
   }
@@ -225,6 +261,9 @@ export class Editor {
       `
       )
       .join('');
+
+    // Apply scale based on actual card width
+    this._updateCardScales();
   }
 
   getSlides() {
