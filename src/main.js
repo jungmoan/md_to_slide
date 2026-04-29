@@ -8,10 +8,13 @@ import './styles/slide.css';
 import 'highlight.js/styles/github-dark.min.css';
 
 // --- Modules ---
-import { Editor, DEFAULT_CONTENT } from './editor.js';
+import { Editor, DEFAULT_CONTENT, FULL_EXAMPLE_CONTENT } from './editor.js';
 import { Presenter } from './presenter.js';
 import { initTheme } from './theme.js';
-import { saveContent, loadContent, exportFile, importFile, saveLayout, loadLayout } from './storage.js';
+import { 
+  saveContent, loadContent, exportFile, importFile, saveLayout, loadLayout,
+  getAllDocuments, getDocument, getCurrentDocId, setCurrentDocId, createDocument, deleteDocument 
+} from './storage.js';
 
 // --- DOM Elements ---
 const textareaEl = document.getElementById('markdown-editor');
@@ -23,6 +26,10 @@ const themeSelect = document.getElementById('theme-select');
 const btnPresent = document.getElementById('btn-present');
 const btnImport = document.getElementById('btn-import');
 const btnExport = document.getElementById('btn-export');
+const btnNew = document.getElementById('btn-new');
+const btnDocs = document.getElementById('btn-docs');
+const docsDropdownContainer = document.getElementById('docs-dropdown-container');
+const docsMenu = document.getElementById('docs-menu');
 const btnClear = document.getElementById('btn-clear');
 const btnLayout = document.getElementById('btn-layout');
 const btnImage = document.getElementById('btn-image');
@@ -75,6 +82,77 @@ document.addEventListener('click', (e) => {
   if (!tocDropdown.contains(e.target)) {
     tocDropdown.classList.remove('open');
   }
+  if (docsDropdownContainer && !docsDropdownContainer.contains(e.target)) {
+    docsDropdownContainer.classList.remove('open');
+  }
+});
+
+// --- Docs & New Slide ---
+function renderDocsMenu() {
+  const docs = getAllDocuments();
+  const currentId = getCurrentDocId();
+  
+  if (docs.length === 0) {
+    docsMenu.innerHTML = '<div style="padding: 8px 12px; color: var(--text-muted); font-size: 0.8rem;">저장된 문서가 없습니다.</div>';
+    return;
+  }
+
+  docsMenu.innerHTML = docs.map(doc => {
+    const isActive = doc.id === currentId;
+    const date = new Date(doc.updatedAt).toLocaleString();
+    return \`
+      <div class="doc-menu-item \${isActive ? 'active' : ''}" data-id="\${doc.id}">
+        <div class="doc-info" style="flex:1; cursor:pointer;">
+          <span class="doc-title">\${doc.title}</span>
+          <span class="doc-date">\${date}</span>
+        </div>
+        <button class="btn-doc-delete" data-id="\${doc.id}" title="삭제" \${isActive ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+        </button>
+      </div>
+    \`;
+  }).join('');
+}
+
+btnDocs.addEventListener('click', (e) => {
+  e.stopPropagation();
+  renderDocsMenu();
+  docsDropdownContainer.classList.toggle('open');
+});
+
+docsMenu.addEventListener('click', (e) => {
+  const deleteBtn = e.target.closest('.btn-doc-delete');
+  if (deleteBtn) {
+    e.stopPropagation();
+    if (deleteBtn.disabled) return;
+    const id = deleteBtn.getAttribute('data-id');
+    if (confirm('이 문서를 삭제하시겠습니까?')) {
+      deleteDocument(id);
+      renderDocsMenu();
+    }
+    return;
+  }
+
+  const docItem = e.target.closest('.doc-info');
+  if (docItem) {
+    const parent = docItem.parentElement;
+    const id = parent.getAttribute('data-id');
+    if (id !== getCurrentDocId()) {
+      setCurrentDocId(id);
+      const doc = getDocument(id);
+      if (doc) {
+        editor.setContent(doc.content);
+        statusEl.textContent = '문서를 불러왔습니다';
+      }
+    }
+    docsDropdownContainer.classList.remove('open');
+  }
+});
+
+btnNew.addEventListener('click', () => {
+  createDocument(FULL_EXAMPLE_CONTENT);
+  editor.setContent(FULL_EXAMPLE_CONTENT);
+  statusEl.textContent = '새 슬라이드를 생성했습니다';
 });
 
 // Insert TOC trigger at cursor position
