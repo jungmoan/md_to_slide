@@ -33,16 +33,71 @@ export class Editor {
     this.charCount = charCountEl;
     this.statusEl = statusEl;
     this.slides = [];
+    this.history = [];
+    this.redoStack = [];
+    this.lastSavedValue = "";
     this.debounceTimer = null;
     this.onSlidesChange = null; // callback
     this._resizeObserver = null;
 
     this._bindEvents();
+    // Initial state
+    this.saveHistory();
     this._setupResizeObserver();
+  }
+
+  saveHistory() {
+    const current = this.textarea.value;
+    if (this.history.length > 0 && this.history[this.history.length - 1].value === current) return;
+    
+    this.history.push({
+      value: current,
+      cursorStart: this.textarea.selectionStart,
+      cursorEnd: this.textarea.selectionEnd
+    });
+    if (this.history.length > 100) this.history.shift();
+    this.redoStack = [];
+  }
+
+  undo() {
+    if (this.history.length <= 1) return;
+    
+    const current = {
+      value: this.textarea.value,
+      cursorStart: this.textarea.selectionStart,
+      cursorEnd: this.textarea.selectionEnd
+    };
+    this.redoStack.push(current);
+    
+    this.history.pop(); // remove current
+    const prev = this.history[this.history.length - 1];
+    
+    this.textarea.value = prev.value;
+    this.textarea.selectionStart = prev.cursorStart;
+    this.textarea.selectionEnd = prev.cursorEnd;
+    this.textarea.focus();
+    this._debounceUpdate();
+  }
+
+  redo() {
+    if (this.redoStack.length === 0) return;
+    
+    const next = this.redoStack.pop();
+    this.history.push(next);
+    
+    this.textarea.value = next.value;
+    this.textarea.selectionStart = next.cursorStart;
+    this.textarea.selectionEnd = next.cursorEnd;
+    this.textarea.focus();
+    this._debounceUpdate();
   }
 
   _bindEvents() {
     this.textarea.addEventListener('input', () => {
+      // Save history on space, enter or when significantly changed
+      if (this.textarea.value.endsWith(' ') || this.textarea.value.endsWith('\n')) {
+        this.saveHistory();
+      }
       this._debounceUpdate();
     });
 
@@ -51,6 +106,7 @@ export class Editor {
       // Ctrl+/ -> Toggle comment
       if ((e.ctrlKey || e.metaKey) && e.key === '/') {
         e.preventDefault();
+        this.saveHistory();
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
         const value = this.textarea.value;
@@ -68,6 +124,7 @@ export class Editor {
         
         this.textarea.value = value.substring(0, lineStart) + line + value.substring(lineEnd);
         this.textarea.selectionStart = this.textarea.selectionEnd = lineStart + line.length;
+        this.saveHistory();
         this._debounceUpdate();
         return;
       }
@@ -75,6 +132,7 @@ export class Editor {
       // Cmd/Ctrl+B -> Bold
       if ((e.ctrlKey || e.metaKey) && (e.key === 'b' || e.key === 'B')) {
         e.preventDefault();
+        this.saveHistory();
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
         const value = this.textarea.value;
@@ -97,6 +155,7 @@ export class Editor {
           this.textarea.selectionStart = start + 2;
           this.textarea.selectionEnd = end + 2;
         }
+        this.saveHistory();
         this._debounceUpdate();
         return;
       }
@@ -104,6 +163,7 @@ export class Editor {
       // Cmd/Ctrl+I -> Italic
       if ((e.ctrlKey || e.metaKey) && (e.key === 'i' || e.key === 'I')) {
         e.preventDefault();
+        this.saveHistory();
         const start = this.textarea.selectionStart;
         const end = this.textarea.selectionEnd;
         const value = this.textarea.value;
@@ -126,7 +186,22 @@ export class Editor {
           this.textarea.selectionStart = start + 1;
           this.textarea.selectionEnd = end + 1;
         }
+        this.saveHistory();
         this._debounceUpdate();
+        return;
+      }
+
+      // Cmd/Ctrl+Z -> Undo
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key === 'z') {
+        e.preventDefault();
+        this.undo();
+        return;
+      }
+
+      // Cmd/Ctrl+Shift+Z or Ctrl+Y -> Redo
+      if (((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'z') || ((e.ctrlKey || e.metaKey) && e.key === 'y')) {
+        e.preventDefault();
+        this.redo();
         return;
       }
 
