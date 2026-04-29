@@ -355,32 +355,77 @@ document.addEventListener('keydown', (e) => {
     return;
   }
 
-  // Ctrl+S → Export
-  if (e.ctrlKey && e.key === 's') {
-    e.preventDefault();
-    exportFile(editor.getContent());
-    statusEl.textContent = '파일 내보내기 완료';
-    return;
-  }
+  // Removed duplicate Ctrl+S handling here
 });
 
-// --- Drag & Drop ---
+// --- Drag & Drop / Paste for Images & Markdown ---
+async function handleImageFile(file) {
+  if (!file.type.startsWith('image/')) return false;
+  
+  statusEl.textContent = '이미지 처리 중...';
+  const reader = new FileReader();
+  
+  return new Promise((resolve) => {
+    reader.onload = async (e) => {
+      const base64 = e.target.result;
+      const imgId = await saveImage(base64);
+      
+      const textarea = textareaEl;
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const value = textarea.value;
+      
+      const markdownImage = `![image](local-img://${imgId})`;
+      
+      textarea.value = value.substring(0, start) + markdownImage + value.substring(end);
+      textarea.selectionStart = textarea.selectionEnd = start + markdownImage.length;
+      textarea.focus();
+      
+      editor.updatePreview();
+      saveContent(textarea.value, currentTheme, currentLayout);
+      statusEl.textContent = '이미지 삽입 완료';
+      resolve(true);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
 document.addEventListener('dragover', (e) => e.preventDefault());
 document.addEventListener('drop', async (e) => {
   e.preventDefault();
   const file = e.dataTransfer?.files[0];
   if (!file) return;
+  
+  // Handle image drop
+  if (file.type.startsWith('image/')) {
+    await handleImageFile(file);
+    return;
+  }
+  
   if (!file.name.match(/\.(md|txt|markdown)$/i)) {
-    statusEl.textContent = 'Markdown 파일만 지원합니다 (.md, .txt)';
+    statusEl.textContent = 'Markdown 파일 또는 이미지만 지원합니다';
     return;
   }
   try {
     const text = await importFile(file);
     editor.setContent(text);
-    saveContent(text);
+    saveContent(text, currentTheme, currentLayout);
     statusEl.textContent = `"${file.name}" 가져오기 완료`;
   } catch (err) {
     statusEl.textContent = '파일 가져오기 실패';
+  }
+});
+
+textareaEl.addEventListener('paste', async (e) => {
+  const items = e.clipboardData?.items;
+  if (!items) return;
+  for (let i = 0; i < items.length; i++) {
+    if (items[i].type.startsWith('image/')) {
+      e.preventDefault();
+      const file = items[i].getAsFile();
+      await handleImageFile(file);
+      return;
+    }
   }
 });
 

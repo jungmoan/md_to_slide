@@ -2,6 +2,7 @@
 
 import { marked } from 'marked';
 import hljs from 'highlight.js';
+import { getImage } from './storage.js';
 
 // --- Configure marked with highlight.js ---
 marked.setOptions({
@@ -300,6 +301,9 @@ export class Editor {
 
     // Render preview cards
     this._renderPreviewCards();
+    
+    // Hydrate local base64 images
+    this._hydrateImages();
 
     // Update status
     if (this.statusEl) {
@@ -312,6 +316,18 @@ export class Editor {
     // Notify
     if (this.onSlidesChange) {
       this.onSlidesChange(this.slides);
+    }
+  }
+
+  async _hydrateImages() {
+    if (!this.preview) return;
+    const images = this.preview.querySelectorAll('img[src^="local-img://"]');
+    for (const img of images) {
+      const id = img.getAttribute('src').replace('local-img://', '');
+      const base64 = await getImage(id);
+      if (base64) {
+        img.src = base64;
+      }
     }
   }
 

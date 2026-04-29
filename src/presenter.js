@@ -1,4 +1,5 @@
 // presenter.js — 프레젠테이션 모드
+import { getImage } from './storage.js';
 
 export class Presenter {
   constructor() {
@@ -191,6 +192,9 @@ export class Presenter {
       
       // Initialize animation fragments if needed
       this._initFragments();
+      
+      // Hydrate images
+      this._hydrateImages();
 
       // Fade in
       this.contentEl.classList.remove('fade-out');
@@ -207,6 +211,18 @@ export class Presenter {
       this.prevBtn.disabled = this.currentIndex === 0;
       this.nextBtn.disabled = this.currentIndex === this.slides.length - 1;
     }, 150);
+  }
+
+  async _hydrateImages() {
+    if (!this.contentEl) return;
+    const images = this.contentEl.querySelectorAll('img[src^="local-img://"]');
+    for (const img of images) {
+      const id = img.getAttribute('src').replace('local-img://', '');
+      const base64 = await getImage(id);
+      if (base64) {
+        img.src = base64;
+      }
+    }
   }
 
   _initFragments() {
