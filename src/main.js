@@ -25,6 +25,8 @@ const btnImport = document.getElementById('btn-import');
 const btnExport = document.getElementById('btn-export');
 const btnClear = document.getElementById('btn-clear');
 const btnLayout = document.getElementById('btn-layout');
+const btnImage = document.getElementById('btn-image');
+const btnCover = document.getElementById('btn-cover');
 const btnToc = document.getElementById('btn-toc');
 const tocDropdown = document.getElementById('toc-dropdown');
 const tocMenu = document.getElementById('toc-menu');
@@ -102,6 +104,40 @@ tocMenu.addEventListener('click', (e) => {
   statusEl.textContent = type === 'horizontal' ? '목차 (가로) 삽입 완료' : '목차 (세로) 삽입 완료';
 });
 
+// --- Cover Slide ---
+btnCover.addEventListener('click', () => {
+  const textarea = textareaEl;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const value = textarea.value;
+
+  textarea.value = value.substring(0, start) + '<!-- cover -->\n' + value.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + 15;
+  textarea.focus();
+
+  editor.updatePreview();
+  saveContent(textarea.value);
+  statusEl.textContent = '제목(Cover) 슬라이드 매크로 삽입 완료';
+});
+
+// --- Image Macro ---
+btnImage.addEventListener('click', () => {
+  const textarea = textareaEl;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const value = textarea.value;
+
+  const macro = `<!-- split-left -->\n![이미지 설명](이미지URL_또는_경로)\n\n### 이미지에 대한 설명\n- 내용 1\n- 내용 2\n`;
+  
+  textarea.value = value.substring(0, start) + macro + value.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + macro.length;
+  textarea.focus();
+
+  editor.updatePreview();
+  saveContent(textarea.value);
+  statusEl.textContent = '이미지 분할 레이아웃 삽입 완료';
+});
+
 // Auto-save on change
 let saveTimer = null;
 editor.onSlidesChange = () => {
@@ -123,15 +159,6 @@ function startPresentation(startIndex = 0) {
 
 btnPresent.addEventListener('click', () => startPresentation());
 
-// Click on preview card → start from that slide
-previewEl.addEventListener('click', (e) => {
-  const card = e.target.closest('.slide-card');
-  if (card) {
-    const idx = parseInt(card.dataset.slideIndex, 10);
-    startPresentation(idx);
-  }
-});
-
 // --- Import ---
 btnImport.addEventListener('click', () => fileInput.click());
 fileInput.addEventListener('change', async (e) => {
@@ -152,6 +179,30 @@ fileInput.addEventListener('change', async (e) => {
 btnExport.addEventListener('click', () => {
   exportFile(editor.getContent());
   statusEl.textContent = '파일 내보내기 완료';
+});
+
+// --- Preview Card Interactions ---
+previewEl.addEventListener('click', (e) => {
+  const playBtn = e.target.closest('.btn-play-from-here');
+  if (playBtn) {
+    e.stopPropagation();
+    const index = parseInt(playBtn.getAttribute('data-slide-index'), 10);
+    presenter.start(editor.slides, index);
+    return;
+  }
+
+  const card = e.target.closest('.slide-card');
+  if (card) {
+    const offset = parseInt(card.getAttribute('data-offset'), 10);
+    if (!isNaN(offset)) {
+      textareaEl.focus();
+      textareaEl.setSelectionRange(offset, offset);
+      // Rough scroll estimation
+      const lines = textareaEl.value.substring(0, offset).split('\n').length;
+      const lineHeight = 24; // approximate
+      textareaEl.scrollTop = Math.max(0, (lines - 5) * lineHeight);
+    }
+  }
 });
 
 // --- Clear ---

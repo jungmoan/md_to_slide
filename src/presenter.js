@@ -26,6 +26,9 @@ export class Presenter {
     this._bindEvents();
     this._render();
 
+    // Start fullscreen automatically if supported
+    this.toggleFullscreen(true);
+
     // Animate in
     requestAnimationFrame(() => {
       this.overlay.classList.add('active');
@@ -137,7 +140,15 @@ export class Presenter {
       if (!this.isActive) return;
       // Click on slide area = next, but not on nav buttons
       if (e.target.closest('.presenter-nav')) return;
-      this.next();
+
+      const clickX = e.clientX;
+      const halfWidth = window.innerWidth / 2;
+      
+      if (clickX < halfWidth) {
+        this.prev();
+      } else {
+        this.next();
+      }
     };
 
     document.addEventListener('keydown', this._keyHandler);
@@ -159,8 +170,13 @@ export class Presenter {
     this.contentEl.classList.remove('fade-in');
 
     setTimeout(() => {
-      this.contentEl.innerHTML = this.slides[this.currentIndex] || '';
+      // Handle the new object structure from editor.js { html, offset }
+      const slideData = this.slides[this.currentIndex];
+      this.contentEl.innerHTML = slideData ? slideData.html : '';
       this.contentEl.scrollTop = 0;
+      
+      // Initialize animation fragments if needed
+      this._initFragments();
 
       // Fade in
       this.contentEl.classList.remove('fade-out');
@@ -179,7 +195,30 @@ export class Presenter {
     }, 150);
   }
 
+  _initFragments() {
+    this.fragments = [];
+    this.fragmentIndex = -1;
+    
+    // Check if the current slide is an animated slide
+    const slideWrapper = this.contentEl.querySelector('.slide-animate');
+    if (slideWrapper) {
+      // Find elements to animate (e.g., list items, paragraphs, images)
+      const animatable = slideWrapper.querySelectorAll('li, p, img, blockquote');
+      animatable.forEach(el => {
+        el.classList.add('fragment');
+        this.fragments.push(el);
+      });
+    }
+  }
+
   next() {
+    // If we have fragments to reveal, reveal the next one instead of moving to the next slide
+    if (this.fragments && this.fragmentIndex < this.fragments.length - 1) {
+      this.fragmentIndex++;
+      this.fragments[this.fragmentIndex].classList.add('visible');
+      return;
+    }
+
     if (this.currentIndex < this.slides.length - 1) {
       this.currentIndex++;
       this._render();
@@ -187,6 +226,13 @@ export class Presenter {
   }
 
   prev() {
+    // If we have fragments visible, hide the last one
+    if (this.fragments && this.fragmentIndex >= 0) {
+      this.fragments[this.fragmentIndex].classList.remove('visible');
+      this.fragmentIndex--;
+      return;
+    }
+
     if (this.currentIndex > 0) {
       this.currentIndex--;
       this._render();
@@ -200,11 +246,19 @@ export class Presenter {
     }
   }
 
-  toggleFullscreen() {
-    if (!document.fullscreenElement) {
-      this.overlay.requestFullscreen().catch(() => {});
-    } else {
-      document.exitFullscreen().catch(() => {});
+  toggleFullscreen(forceEnter = false) {
+    if (!document.fullscreenElement && (forceEnter || !this.overlay.fullscreenElement)) {
+      if (this.overlay.requestFullscreen) {
+        this.overlay.requestFullscreen().catch(() => {});
+      } else if (this.overlay.webkitRequestFullscreen) { // Safari
+        this.overlay.webkitRequestFullscreen();
+      }
+    } else if (!forceEnter) {
+      if (document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      } else if (document.webkitExitFullscreen) { // Safari
+        document.webkitExitFullscreen();
+      }
     }
   }
 

@@ -78,26 +78,66 @@ export class Editor {
   parseSlides(markdown) {
     if (!markdown.trim()) return [];
 
-    // Split by --- on its own line (horizontal rule)
-    const parts = markdown.split(/\n---\n/);
+    // We need to keep track of character offsets to jump to slides
+    // Splitting by \n---\n using RegExp with exec to find indices
+    const regex = /\n---\n/g;
     const slides = [];
+    let lastIndex = 0;
+    let match;
 
-    for (const part of parts) {
-      const trimmed = part.trim();
-      if (!trimmed) continue;
+    const processPart = (text, offset) => {
+      const trimmed = text.trim();
+      if (!trimmed) return null;
       const html = marked.parse(trimmed);
+      let finalHtml = html;
+      let extraClass = '';
 
-      // Detect TOC slides
-      if (trimmed.includes('<!-- toc-h -->')) {
-        const cleanHtml = html.replace(/<!--\s*toc-h\s*-->/g, '');
-        slides.push(`<div class="slide-toc slide-toc-horizontal">${cleanHtml}</div>`);
+      // Check for macros
+      if (trimmed.includes('<!-- cover -->')) {
+        finalHtml = `<div class="slide-cover">${html.replace(/<!--\s*cover\s*-->/g, '')}</div>`;
+      } else if (trimmed.includes('<!-- toc-h -->')) {
+        finalHtml = `<div class="slide-toc slide-toc-horizontal">${html.replace(/<!--\s*toc-h\s*-->/g, '')}</div>`;
       } else if (trimmed.includes('<!-- toc -->')) {
-        const cleanHtml = html.replace(/<!--\s*toc\s*-->/g, '');
-        slides.push(`<div class="slide-toc">${cleanHtml}</div>`);
-      } else {
-        slides.push(html);
+        finalHtml = `<div class="slide-toc">${html.replace(/<!--\s*toc\s*-->/g, '')}</div>`;
       }
+      
+      if (trimmed.includes('<!-- animate -->')) {
+        extraClass += ' slide-animate';
+        finalHtml = finalHtml.replace(/<!--\s*animate\s*-->/g, '');
+      }
+      
+      if (trimmed.includes('<!-- split-left -->')) {
+        extraClass += ' slide-split split-left';
+        finalHtml = finalHtml.replace(/<!--\s*split-left\s*-->/g, '');
+      } else if (trimmed.includes('<!-- split-right -->')) {
+        extraClass += ' slide-split split-right';
+        finalHtml = finalHtml.replace(/<!--\s*split-right\s*-->/g, '');
+      }
+
+      if (extraClass) {
+        if (finalHtml.startsWith('<div class="slide-')) {
+          // If it already has a wrapper, append the class
+          finalHtml = finalHtml.replace('class="', `class="${extraClass.trim()} `);
+        } else {
+          // Otherwise, wrap it
+          finalHtml = `<div class="slide-wrapper ${extraClass.trim()}">${finalHtml}</div>`;
+        }
+      }
+
+      return { html: finalHtml, offset };
+    };
+
+    while ((match = regex.exec(markdown)) !== null) {
+      const part = markdown.substring(lastIndex, match.index);
+      const slide = processPart(part, lastIndex);
+      if (slide) slides.push(slide);
+      lastIndex = match.index + match[0].length;
     }
+    
+    // Process the last part
+    const lastPart = markdown.substring(lastIndex);
+    const slide = processPart(lastPart, lastIndex);
+    if (slide) slides.push(slide);
 
     return slides;
   }
@@ -154,10 +194,13 @@ export class Editor {
 
     this.preview.innerHTML = this.slides
       .map(
-        (html, i) => `
-        <div class="slide-card" data-slide-index="${i}" title="클릭하여 ${i + 1}번 슬라이드부터 시작">
-          <div class="slide-card-inner slide-content">${html}</div>
+        (slide, i) => `
+        <div class="slide-card" data-slide-index="${i}" data-offset="${slide.offset}" title="클릭하면 에디터 해당 위치로 이동합니다">
+          <div class="slide-card-inner slide-content">${slide.html}</div>
           <span class="slide-card-number">${i + 1}</span>
+          <button class="btn-play-from-here" data-slide-index="${i}" title="여기서부터 슬라이드쇼 시작">
+            <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+          </button>
         </div>
       `
       )
@@ -175,7 +218,8 @@ export class Editor {
 }
 
 // --- Default sample content ---
-export const DEFAULT_CONTENT = `# MD Slide 🎬
+export const DEFAULT_CONTENT = `<!-- cover -->
+# MD Slide 🎬
 미니멀 마크다운 프레젠터
 
 > Markdown으로 유튜브 영상용 슬라이드를 만들어보세요
@@ -243,4 +287,102 @@ console.log(greet('세계'));
 
 # 감사합니다 🙏
 지금 바로 시작해보세요!
+`;
+
+// --- Full example content (모든 기능 데모) ---
+export const FULL_EXAMPLE_CONTENT = `<!-- cover -->
+# MD Slide 풀옵션 🚀
+모든 기능이 포함된 마스터 템플릿
+
+> 이 템플릿은 MD Slide가 지원하는 모든 레이아웃과 매크로를 포함합니다.
+
+---
+
+<!-- toc-h -->
+## 기능 둘러보기 📋
+
+1. 표지 및 목차
+   - Cover / TOC 매크로
+2. 다이나믹 레이아웃
+   - 좌우 분할 (Split)
+3. 인터랙션
+   - 프래그먼트 애니메이션
+4. 마크다운 기본기
+   - 코드, 테이블 등
+
+---
+
+<!-- toc -->
+## 세로 목차 스타일 📋
+
+1. 표지 슬라이드
+   - \`<!-- cover -->\` 매크로 사용
+2. 가로 목차
+   - \`<!-- toc-h -->\` 매크로 사용
+3. 세로 목차 (지금 이 슬라이드)
+   - \`<!-- toc -->\` 매크로 사용
+4. 이미지 분할 레이아웃
+5. 애니메이션 효과
+
+---
+
+<!-- split-left -->
+![Sample Image](https://images.unsplash.com/photo-1555066931-4365d14bab8c?auto=format&fit=crop&w=800&q=80)
+
+### 2단 분할 레이아웃
+- \`<!-- split-left -->\` 매크로를 사용했습니다
+- 이미지는 **우측**, 텍스트는 **좌측**에 배치됩니다
+- \`<!-- split-right -->\` 를 쓰면 반대로 배치됩니다
+
+---
+
+<!-- animate -->
+## 프래그먼트 애니메이션 🪄
+
+\`<!-- animate -->\` 매크로를 추가하면 하위 요소들이 하나씩 등장합니다.
+
+1. 첫 번째로 나타나는 항목입니다
+2. 클릭(또는 방향키) 시 두 번째 항목이 나타납니다
+3. 세 번째 항목도 부드럽게 등장합니다!
+
+> 애니메이션은 프레젠테이션 모드에서만 동작하며, 미리보기에서는 항상 보입니다.
+
+---
+
+## 코드 하이라이팅 💻
+
+다양한 언어의 코드를 지원합니다:
+
+\`\`\`javascript
+const presenter = new Presenter();
+presenter.start(slides);
+// 완벽한 전체화면 모드로 시작!
+\`\`\`
+
+---
+
+## 표(Table) 지원 📊
+
+| 매크로 | 기능 | 사용법 |
+|--------|------|--------|
+| **Cover** | 표지 슬라이드 | \`<!-- cover -->\` |
+| **TOC 세로** | 세로 목차 | \`<!-- toc -->\` |
+| **TOC 가로** | 가로 목차 | \`<!-- toc-h -->\` |
+| **Split** | 2단 분할 | \`<!-- split-left/right -->\` |
+| **Animate** | 프래그먼트 | \`<!-- animate -->\` |
+
+---
+
+## 키보드 단축키 ⌨️
+
+- \`Ctrl + Enter\` — 슬라이드쇼 시작
+- \`←\` \`→\` — 이전 / 다음 슬라이드
+- \`F\` — 전체화면 토글
+- \`Escape\` — 프레젠테이션 종료
+- \`Ctrl + S\` — 파일 내보내기
+
+---
+
+# 끝입니다 🎉
+지금 바로 여러분의 슬라이드를 만들어보세요!
 `;
