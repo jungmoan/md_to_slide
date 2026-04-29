@@ -10,10 +10,11 @@ import 'highlight.js/styles/github-dark.min.css';
 // --- Modules ---
 import { Editor, DEFAULT_CONTENT, FULL_EXAMPLE_CONTENT } from './editor.js';
 import { Presenter } from './presenter.js';
-import { initTheme } from './theme.js';
+import { initThemeDropdown, applyTheme } from './theme.js';
 import {
-  saveContent, loadContent, exportFile, importFile, saveLayout, loadLayout,
-  getAllDocuments, getDocument, getCurrentDocId, setCurrentDocId, createDocument, deleteDocument
+  saveContent, loadContent, exportFile, importFile,
+  getAllDocuments, getDocument, getCurrentDocId, setCurrentDocId, createDocument, deleteDocument,
+  getDocumentSettings, updateDocumentSettings, getDocumentHistory, saveImage
 } from './storage.js';
 
 // --- DOM Elements ---
@@ -39,18 +40,46 @@ const tocDropdown = document.getElementById('toc-dropdown');
 const tocMenu = document.getElementById('toc-menu');
 const fileInput = document.getElementById('file-input');
 
+// Global State
+let currentLayout = 'default';
+let currentTheme = 'midnight';
+
 // --- Initialize ---
 const editor = new Editor(textareaEl, previewEl, slideCountEl, charCountEl, statusEl);
 const presenter = new Presenter();
 
-// Theme
-initTheme(themeSelect);
+async function initApp() {
+  // Load saved content or default
+  let saved = await loadContent();
+  if (!saved && !getCurrentDocId()) {
+    const id = await createDocument(DEFAULT_CONTENT);
+    setCurrentDocId(id);
+    saved = DEFAULT_CONTENT;
+  }
+  
+  editor.setContent(saved || DEFAULT_CONTENT);
+  
+  // Theme & Layout
+  initThemeDropdown(themeSelect, async (theme) => {
+    currentTheme = theme;
+    applyTheme(theme);
+    const id = getCurrentDocId();
+    if (id) await updateDocumentSettings(id, currentTheme, currentLayout);
+  });
+  
+  const id = getCurrentDocId();
+  if (id) {
+    const settings = await getDocumentSettings(id);
+    currentTheme = settings.theme;
+    currentLayout = settings.layout;
+  }
+  
+  applyTheme(currentTheme);
+  themeSelect.value = currentTheme;
+  applyLayoutUI(currentLayout);
+}
 
-// Layout (default / center)
-let currentLayout = loadLayout();
-applyLayout(currentLayout);
-
-function applyLayout(layout) {
+function applyLayoutUI(layout) {
   if (layout === 'center') {
     document.documentElement.setAttribute('data-layout', 'center');
     btnLayout.querySelector('span').textContent = '좌상단';
@@ -60,16 +89,18 @@ function applyLayout(layout) {
   }
 }
 
-btnLayout.addEventListener('click', () => {
+btnLayout.addEventListener('click', async () => {
   currentLayout = currentLayout === 'center' ? 'default' : 'center';
-  applyLayout(currentLayout);
-  saveLayout(currentLayout);
+  applyLayoutUI(currentLayout);
+  const id = getCurrentDocId();
+  if (id) {
+    await updateDocumentSettings(id, currentTheme, currentLayout);
+  }
   statusEl.textContent = currentLayout === 'center' ? '가운데 정렬 모드' : '좌상단 정렬 모드';
 });
 
-// Load saved content or default
-const saved = loadContent();
-editor.setContent(saved || DEFAULT_CONTENT);
+// Run Init
+initApp();
 
 // --- TOC Dropdown ---
 btnToc.addEventListener('click', (e) => {
@@ -88,8 +119,8 @@ document.addEventListener('click', (e) => {
 });
 
 // --- Docs & New Slide ---
-function renderDocsMenu() {
-  const docs = getAllDocuments();
+async function renderDocsMenu() {
+  const docs = await getAllDocuments();
   const currentId = getCurrentDocId();
 
   if (docs.length === 0) {
@@ -106,29 +137,40 @@ function renderDocsMenu() {
           <span class="doc-title">${doc.title}</span>
           <span class="doc-date">${date}</span>
         </div>
+        <button class="btn-doc-history" data-id="${doc.id}" title="버전 기록" style="background:none; border:none; color:inherit; cursor:pointer; padding:4px;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+        </button>
         <button class="btn-doc-delete" data-id="${doc.id}" title="삭제" ${isActive ? 'disabled style="opacity:0.2; cursor:not-allowed;"' : ''}>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
         </button>
       </div>
     `;
   }).join('');
 }
 
-btnDocs.addEventListener('click', (e) => {
+btnDocs.addEventListener('click', async (e) => {
   e.stopPropagation();
-  renderDocsMenu();
+  await renderDocsMenu();
   docsDropdownContainer.classList.toggle('open');
 });
 
-docsMenu.addEventListener('click', (e) => {
+docsMenu.addEventListener('click', async (e) => {
+  const historyBtn = e.target.closest('.btn-doc-history');
+  if (historyBtn) {
+    e.stopPropagation();
+    const id = historyBtn.getAttribute('data-id');
+    await showVersionHistory(id);
+    return;
+  }
+
   const deleteBtn = e.target.closest('.btn-doc-delete');
   if (deleteBtn) {
     e.stopPropagation();
     if (deleteBtn.disabled) return;
     const id = deleteBtn.getAttribute('data-id');
     if (confirm('이 문서를 삭제하시겠습니까?')) {
-      deleteDocument(id);
-      renderDocsMenu();
+      await deleteDocument(id);
+      await renderDocsMenu();
     }
     return;
   }
@@ -139,8 +181,14 @@ docsMenu.addEventListener('click', (e) => {
     const id = parent.getAttribute('data-id');
     if (id !== getCurrentDocId()) {
       setCurrentDocId(id);
-      const doc = getDocument(id);
+      const doc = await getDocument(id);
       if (doc) {
+        currentTheme = doc.theme || 'midnight';
+        currentLayout = doc.layout || 'default';
+        applyTheme(currentTheme);
+        themeSelect.value = currentTheme;
+        applyLayoutUI(currentLayout);
+        
         editor.setContent(doc.content);
         statusEl.textContent = '문서를 불러왔습니다';
       }
@@ -149,8 +197,15 @@ docsMenu.addEventListener('click', (e) => {
   }
 });
 
-btnNew.addEventListener('click', () => {
-  createDocument(FULL_EXAMPLE_CONTENT);
+btnNew.addEventListener('click', async () => {
+  const id = await createDocument(FULL_EXAMPLE_CONTENT);
+  setCurrentDocId(id);
+  currentTheme = 'midnight';
+  currentLayout = 'default';
+  applyTheme(currentTheme);
+  themeSelect.value = currentTheme;
+  applyLayoutUI(currentLayout);
+  
   editor.setContent(FULL_EXAMPLE_CONTENT);
   statusEl.textContent = '새 슬라이드를 생성했습니다';
 });
@@ -221,7 +276,7 @@ let saveTimer = null;
 editor.onSlidesChange = () => {
   clearTimeout(saveTimer);
   saveTimer = setTimeout(() => {
-    saveContent(editor.getContent());
+    saveContent(editor.getContent(), currentTheme, currentLayout);
   }, 500);
 };
 
@@ -328,3 +383,42 @@ document.addEventListener('drop', async (e) => {
     statusEl.textContent = '파일 가져오기 실패';
   }
 });
+
+// --- Version History UI ---
+async function showVersionHistory(docId) {
+  const history = await getDocumentHistory(docId);
+  if (!history || history.length === 0) {
+    alert('저장된 버전 기록이 없습니다.');
+    return;
+  }
+  
+  let msg = '복원할 버전을 선택하세요 (취소: 숫자 이외 입력)\n\n';
+  history.forEach((h, i) => {
+    msg += `[${i + 1}] ${new Date(h.savedAt).toLocaleString()}\n`;
+  });
+  
+  const choice = prompt(msg);
+  const index = parseInt(choice, 10) - 1;
+  if (!isNaN(index) && index >= 0 && index < history.length) {
+    const selectedVersion = history[index];
+    if (confirm('선택한 버전으로 복원하시겠습니까? 현재 상태는 새로운 버전으로 자동 저장됩니다.')) {
+      // Save current state as a new version
+      await saveContent(editor.getContent(), currentTheme, currentLayout);
+      
+      // Apply selected version
+      currentTheme = selectedVersion.theme || 'midnight';
+      currentLayout = selectedVersion.layout || 'default';
+      applyTheme(currentTheme);
+      themeSelect.value = currentTheme;
+      applyLayoutUI(currentLayout);
+      editor.setContent(selectedVersion.content);
+      
+      // Update DB
+      await updateDocumentSettings(docId, currentTheme, currentLayout);
+      await saveContent(selectedVersion.content, currentTheme, currentLayout);
+      
+      statusEl.textContent = '선택한 버전으로 복원되었습니다';
+    }
+  }
+}
+

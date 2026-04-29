@@ -1,57 +1,88 @@
-// storage.js — localStorage 관리
+// storage.js — IndexedDB 관리
 
-const DOCS_KEY = 'md_slide_docs';
+const DB_NAME = 'md_slide_db';
+const DB_VERSION = 1;
 const CURRENT_ID_KEY = 'md_slide_current_id';
-const LEGACY_STORAGE_KEY = 'md_slide_content';
 
-const THEME_KEY = 'md_slide_theme';
-const LAYOUT_KEY = 'md_slide_layout';
+let dbInstance = null;
+
+function initDB() {
+  return new Promise((resolve, reject) => {
+    if (dbInstance) return resolve(dbInstance);
+
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+    request.onerror = (e) => reject(e.target.error);
+
+    request.onsuccess = (e) => {
+      dbInstance = e.target.result;
+      resolve(dbInstance);
+    };
+
+    request.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      
+      // Documents store
+      if (!db.objectStoreNames.contains('docs')) {
+        db.createObjectStore('docs', { keyPath: 'id' });
+      }
+      
+      // History (Versioning) store
+      if (!db.objectStoreNames.contains('history')) {
+        const historyStore = db.createObjectStore('history', { keyPath: 'historyId' });
+        historyStore.createIndex('docId', 'docId', { unique: false });
+      }
+
+      // Images store
+      if (!db.objectStoreNames.contains('images')) {
+        db.createObjectStore('images', { keyPath: 'id' });
+      }
+    };
+  });
+}
 
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
 export function extractTitle(content) {
+  if (!content) return '제목 없는 슬라이드';
   const match = content.match(/^#\s+(.*)/m);
   return match ? match[1].trim() : '제목 없는 슬라이드';
 }
 
-// --- 문서 마이그레이션 및 초기화 ---
-function initDocs() {
-  let docs = [];
-  try {
-    const saved = localStorage.getItem(DOCS_KEY);
-    if (saved) {
-      docs = JSON.parse(saved);
-    } else {
-      // 마이그레이션: 기존 단일 문서가 있으면 첫 문서로 저장
-      const legacyContent = localStorage.getItem(LEGACY_STORAGE_KEY);
-      if (legacyContent && legacyContent.trim() !== '') {
-        const id = generateId();
-        docs.push({
-          id,
-          title: extractTitle(legacyContent),
-          content: legacyContent,
-          updatedAt: Date.now()
-        });
-        localStorage.setItem(CURRENT_ID_KEY, id);
+// --- DB Helper ---
+function txPromise(storeName, mode, callback) {
+  return initDB().then(db => {
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, mode);
+      const store = tx.objectStore(storeName);
+      let result;
+      
+      tx.oncomplete = () => resolve(result);
+      tx.onerror = (e) => reject(e.target.error);
+      
+      try {
+        const req = callback(store);
+        if (req) {
+          req.onsuccess = (e) => { result = e.target.result; };
+        }
+      } catch (e) {
+        reject(e);
       }
-      localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
-    }
-  } catch (e) {
-    console.warn('문서 초기화 실패:', e);
-  }
-  return docs;
+    });
+  });
 }
 
 // --- 다중 문서 API ---
-export function getAllDocuments() {
-  return initDocs().sort((a, b) => b.updatedAt - a.updatedAt);
+export async function getAllDocuments() {
+  const docs = await txPromise('docs', 'readonly', store => store.getAll());
+  return docs.sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
-export function getDocument(id) {
-  const docs = initDocs();
-  return docs.find(doc => doc.id === id) || null;
+export async function getDocument(id) {
+  if (!id) return null;
+  return await txPromise('docs', 'readonly', store => store.get(id));
 }
 
 export function getCurrentDocId() {
@@ -59,62 +90,75 @@ export function getCurrentDocId() {
 }
 
 export function setCurrentDocId(id) {
-  localStorage.setItem(CURRENT_ID_KEY, id);
+  if (id) {
+    localStorage.setItem(CURRENT_ID_KEY, id);
+  } else {
+    localStorage.removeItem(CURRENT_ID_KEY);
+  }
 }
 
-export function saveDocument(id, content) {
+export async function saveDocument(id, content, theme, layout) {
   if (!id) return;
-  const docs = initDocs();
-  const index = docs.findIndex(doc => doc.id === id);
   const title = extractTitle(content);
   const updatedAt = Date.now();
+  
+  const existingDoc = await getDocument(id);
+  const newDoc = { 
+    id, 
+    title, 
+    content, 
+    theme: theme || existingDoc?.theme || 'midnight', 
+    layout: layout || existingDoc?.layout || 'default', 
+    updatedAt 
+  };
 
-  if (index >= 0) {
-    docs[index] = { ...docs[index], content, title, updatedAt };
-  } else {
-    docs.push({ id, title, content, updatedAt });
-  }
+  // Save document
+  await txPromise('docs', 'readwrite', store => store.put(newDoc));
 
-  try {
-    localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
-  } catch (e) {
-    console.warn('문서 저장 실패:', e);
-  }
+  // Save history (Versioning) - we don't save every keystroke, maybe throttle or just save.
+  // Actually, for versioning, we save a history snapshot.
+  const historyId = generateId();
+  await txPromise('history', 'readwrite', store => store.put({
+    historyId,
+    docId: id,
+    content,
+    theme: newDoc.theme,
+    layout: newDoc.layout,
+    savedAt: updatedAt
+  }));
 }
 
-export function createDocument(content) {
+export async function createDocument(content) {
   const id = generateId();
-  saveDocument(id, content);
+  await saveDocument(id, content, 'midnight', 'default');
   setCurrentDocId(id);
   return id;
 }
 
-export function deleteDocument(id) {
-  let docs = initDocs();
-  docs = docs.filter(doc => doc.id !== id);
-  try {
-    localStorage.setItem(DOCS_KEY, JSON.stringify(docs));
-  } catch (e) {}
+export async function deleteDocument(id) {
+  await txPromise('docs', 'readwrite', store => store.delete(id));
+  
+  // Optionally delete history related to this doc
+  const db = await initDB();
+  const tx = db.transaction('history', 'readwrite');
+  const index = tx.objectStore('history').index('docId');
+  const req = index.openCursor(IDBKeyRange.only(id));
+  req.onsuccess = (e) => {
+    const cursor = e.target.result;
+    if (cursor) {
+      cursor.delete();
+      cursor.continue();
+    }
+  };
 }
 
-// 기존 하위 호환을 위한 함수
-export function saveContent(markdown) {
+export async function loadContent() {
   const currentId = getCurrentDocId();
   if (currentId) {
-    saveDocument(currentId, markdown);
-  } else {
-    createDocument(markdown);
-  }
-}
-
-export function loadContent() {
-  const currentId = getCurrentDocId();
-  if (currentId) {
-    const doc = getDocument(currentId);
+    const doc = await getDocument(currentId);
     if (doc) return doc.content;
   }
-  // 활성화된 문서가 없으면 가장 최근 문서 로드
-  const docs = getAllDocuments();
+  const docs = await getAllDocuments();
   if (docs.length > 0) {
     setCurrentDocId(docs[0].id);
     return docs[0].content;
@@ -122,37 +166,57 @@ export function loadContent() {
   return null;
 }
 
-// --- 테마 & 레이아웃 ---
-export function saveTheme(theme) {
-  try {
-    localStorage.setItem(THEME_KEY, theme);
-  } catch (e) {
-    console.warn('테마 저장 실패:', e);
+export async function saveContent(markdown, theme, layout) {
+  const currentId = getCurrentDocId();
+  if (currentId) {
+    await saveDocument(currentId, markdown, theme, layout);
+  } else {
+    await createDocument(markdown);
   }
 }
 
-export function loadTheme() {
-  try {
-    return localStorage.getItem(THEME_KEY) || 'midnight';
-  } catch (e) {
-    return 'midnight';
+// --- 문서별 설정 (Theme/Layout) ---
+// We now get them per document
+export async function getDocumentSettings(id) {
+  const doc = await getDocument(id);
+  return {
+    theme: doc?.theme || 'midnight',
+    layout: doc?.layout || 'default'
+  };
+}
+
+export async function updateDocumentSettings(id, theme, layout) {
+  const doc = await getDocument(id);
+  if (doc) {
+    doc.theme = theme || doc.theme;
+    doc.layout = layout || doc.layout;
+    doc.updatedAt = Date.now();
+    await txPromise('docs', 'readwrite', store => store.put(doc));
   }
 }
 
-export function saveLayout(layout) {
-  try {
-    localStorage.setItem(LAYOUT_KEY, layout);
-  } catch (e) {
-    console.warn('레이아웃 저장 실패:', e);
-  }
+// History API
+export async function getDocumentHistory(docId) {
+  const db = await initDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('history', 'readonly');
+    const index = tx.objectStore('history').index('docId');
+    const req = index.getAll(docId);
+    req.onsuccess = (e) => resolve(e.target.result.sort((a, b) => b.savedAt - a.savedAt));
+    req.onerror = (e) => reject(e.target.error);
+  });
 }
 
-export function loadLayout() {
-  try {
-    return localStorage.getItem(LAYOUT_KEY) || 'default';
-  } catch (e) {
-    return 'default';
-  }
+// --- Images ---
+export async function saveImage(base64Data) {
+  const id = generateId();
+  await txPromise('images', 'readwrite', store => store.put({ id, base64Data }));
+  return id;
+}
+
+export async function getImage(id) {
+  const img = await txPromise('images', 'readonly', store => store.get(id));
+  return img ? img.base64Data : null;
 }
 
 // --- 내보내기 & 가져오기 ---
