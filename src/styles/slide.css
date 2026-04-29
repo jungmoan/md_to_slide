@@ -480,12 +480,12 @@
 .slide-animate .fragment {
   opacity: 0;
   transform: translateY(10px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .slide-animate .fragment.visible {
   opacity: 1;
   transform: translateY(0);
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 /* Skip fragment transition in preview cards */
