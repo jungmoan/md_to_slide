@@ -123,8 +123,9 @@
 
 /* --- Strong / Em --- */
 .slide-content strong {
-  font-weight: 700;
+  font-weight: 800;
   color: var(--accent);
+  text-shadow: 0 0 8px var(--accent-glow);
 }
 
 .slide-content em {
