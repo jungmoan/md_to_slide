@@ -1,20 +1,38 @@
-# 스마트 저장 및 강제 저장 기능 리서치 결과
+# 리서치: 브라우저 IndexedDB에서 실제 DB 파일(SQLite)로 전환
 
-## 1. 스마트 저장 (Smart Auto-save vs. Versioning)
-*   **문제점**: 현재 `saveDocument` 내에서 매번 `history` 테이블에 데이터를 추가하고 있어, 글자 하나를 쓸 때마다 버전이 생성되는 문제가 있음.
-*   **분석**: 
-    *   **Auto-save**: 사용자가 실시간으로 편집하는 최신 상태를 `docs` 테이블에 업데이트 (디바운스 적용).
-    *   **Versioning**: 사용자가 명시적으로 저장(`Ctrl+S`)하거나 특정 시점(복구 등)에서만 `history` 테이블에 스냅샷 저장.
-*   **해결책**: `storage.js`의 `saveDocument`에서 히스토리 저장 로직을 분리하고, 명시적 버전 저장을 위한 `saveHistorySnapshot` 함수를 신설함.
+## 1. 현재 저장 방식 분석
+- **저장소**: 브라우저 내장 `IndexedDB` (이름: `md_slide_db`)
+- **관리 파일**: `src/storage.js`
+- **데이터 구조**:
+  - `docs`: 문서 메타데이터 및 본문 (id, title, content, theme, layout, updatedAt 등)
+  - `history`: 문서 변경 이력 (historyId, docId, content, savedAt 등)
+  - `images`: 이미지 데이터 (id, base64Data)
+- **한계**: 브라우저에 종속적이며, 사용자가 직접 DB 파일을 백업하거나 이동하기 어려움.
 
-## 2. Ctrl/Cmd + S 단축키 및 브라우저 기본 동작 차단
-*   **문제점**: `Cmd+S` 입력 시 브라우저의 "페이지 저장" 창이 뜸.
-*   **분석**: `keydown` 이벤트 핸들러에서 `e.key === 's'`와 `e.metaKey`를 감지할 때 `e.preventDefault()`를 호출하지 않음.
-*   **해결책**: `main.js` 또는 `editor.js`에 전역 단축키 핸들러를 추가하고 `preventDefault()`를 통해 브라우저 동작을 차단한 뒤, 앱 자체 저장 로직을 수행함.
+## 2. SQLite 전환을 위한 기술적 요구사항
+### 백엔드 서버 필요
+- Vite는 프런트엔드 빌드 도구이므로, 파일 시스템에 접근하여 DB를 제어할 서버(Node.js)가 필요함.
+- **선택지**:
+  1. `Express` 서버 추가 (가장 일반적)
+  2. `server.js`를 작성하여 Vite 개발 서버와 함께 구동 (Vite Proxy 사용)
 
-## 3. 토스트 메시지 (Toast Notification)
-*   **요구사항**: 저장 성공 시 시각적인 알림 제공.
-*   **해결책**:
-    *   HTML: 하단 중앙 또는 우상단에 `toast-container` 추가.
-    *   CSS: 부드러운 애니메이션(Fade-in/out)과 유리 질감 스타일 적용.
-    *   JS: 메시지를 매개변수로 받아 일정 시간 후 사라지는 `showToast()` 함수 구현.
+### 데이터베이스 라이브러리
+- `better-sqlite3`: 동기식 API를 제공하여 설정이 간편하고 성능이 뛰어남. (Node.js 환경 전용)
+
+### API 엔드포인트 설계
+- `GET /api/docs`: 전체 문서 목록 조회
+- `GET /api/docs/:id`: 특정 문서 조회
+- `POST /api/docs`: 새 문서 생성
+- `PUT /api/docs/:id`: 문서 수정
+- `DELETE /api/docs/:id`: 문서 삭제
+- `POST /api/images`: 이미지 업로드
+- `GET /api/images/:id`: 이미지 조회
+
+## 3. 고려 사항 및 트레이드 오프
+- **설정 복잡도**: 단순 정적 웹사이트에서 백엔드 서버가 필요한 구조로 변경됨.
+- **배포**: 프런트엔드만 배포하던 방식에서 서버와 DB 파일 관리가 필요한 방식으로 변경됨.
+- **실행 방식**: 이제는 브라우저만 여는 게 아니라, 서버를 같이 띄워야 함 (`npm run dev` 시 서버도 함께 구동되도록 구성).
+
+## 4. 마이그레이션 전략
+- 기존 사용자의 IndexedDB 데이터를 서버로 보낼 수 있는 간단한 '동기화/가져오기' 기능을 구현할 수 있음.
+- 초기에는 새로운 서버 DB를 빈 상태로 시작하되, 필요 시 기존 데이터를 임포트하는 버튼 추가.
