@@ -334,14 +334,15 @@ export class Editor {
         let animateStarted = false;
         const animatableTags = ['P', 'LI', 'IMG', 'BLOCKQUOTE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'];
         
+        const nodesToRemove = [];
         while (node = iterator.nextNode()) {
           if (node.nodeType === Node.COMMENT_NODE && node.nodeValue.trim() === 'animate') {
             animateStarted = true;
+            nodesToRemove.push(node);
             continue;
           }
           if (animateStarted && node.nodeType === Node.ELEMENT_NODE) {
             if (animatableTags.includes(node.tagName)) {
-              // Only add fragment if not already inside a fragment
               if (!node.closest('.fragment')) {
                 node.classList.add('fragment');
               }
@@ -349,9 +350,9 @@ export class Editor {
           }
         }
         
-        // Remove the macro comment from HTML
-        finalHtml = temp.innerHTML.replace(/<!--\s*animate\s*-->/g, '');
-        extraClass += ' slide-animate'; // Keep class for potential styling, though logic moves to fragments
+        nodesToRemove.forEach(n => n.remove());
+        finalHtml = temp.innerHTML;
+        extraClass += ' slide-animate';
       }
 
       let isSplit = false;
