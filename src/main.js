@@ -491,6 +491,7 @@ btnClear.addEventListener('click', () => {
 });
 
 // --- Keyboard Shortcuts ---
+document.addEventListener('keydown', (e) => {
   // Cmd/Ctrl + F -> Find Bar
   if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
     e.preventDefault();
