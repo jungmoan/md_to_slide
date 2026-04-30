@@ -352,6 +352,12 @@ export class Editor {
         
         nodesToRemove.forEach(n => {
           const parent = n.parentElement;
+          // Clean up adjacent text nodes if they are just whitespace
+          const prev = n.previousSibling;
+          const next = n.nextSibling;
+          if (prev && prev.nodeType === Node.TEXT_NODE && !prev.textContent.trim()) prev.remove();
+          if (next && next.nodeType === Node.TEXT_NODE && !next.textContent.trim()) next.remove();
+          
           n.remove();
           // If parent becomes empty (or just whitespace), remove it too to avoid layout gaps
           if (parent && parent.tagName === 'P' && parent.innerHTML.trim() === '') {

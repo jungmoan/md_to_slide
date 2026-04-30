@@ -988,6 +988,26 @@
 /* Override display: contents for capture — html2canvas cannot capture display:contents */
 .print-container .slide-wrapper {
   display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Fix Title Slide Gradient for html2canvas */
+.print-container .slide-cover h1 {
+  background: none !important;
+  -webkit-background-clip: initial !important;
+  -webkit-text-fill-color: initial !important;
+  color: var(--accent) !important;
+}
+
+/* Fix Blockquote newlines and margins in print */
+.print-container blockquote {
+  margin: 12px 0 !important;
+  padding: 12px 24px !important;
+}
+
+.print-container blockquote p {
+  margin: 0 !important;
 }
 
 /* Ensure layout and themes apply to the capture container */

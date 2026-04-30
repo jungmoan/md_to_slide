@@ -529,6 +529,8 @@ btnExportPdf.addEventListener('click', async () => {
         useCORS: true,
         width: 1280,
         height: 720,
+        windowWidth: 1280,
+        windowHeight: 720,
         logging: false
       });
 
