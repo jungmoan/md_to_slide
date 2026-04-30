@@ -483,7 +483,7 @@ btnExportMd.addEventListener('click', () => {
 });
 
 btnExportPdf.addEventListener('click', async () => {
-  if (typeof html2pdf === 'undefined') {
+  if (typeof html2canvas === 'undefined') {
     showToast('PDF 라이브러리를 로드 중입니다. 잠시 후 다시 시도해주세요.');
     return;
   }
@@ -494,9 +494,9 @@ btnExportPdf.addEventListener('click', async () => {
     return;
   }
 
-  showToast('PDF 생성 중... 잠시만 기다려주세요.');
+  showToast(`PDF 생성 중... (${slides.length}장)`);
 
-  // Populate print container
+  // Populate print container with slide data
   printContainer.innerHTML = '';
   printContainer.setAttribute('data-theme', currentTheme);
   printContainer.setAttribute('data-layout', currentLayout);
@@ -508,46 +508,48 @@ btnExportPdf.addEventListener('click', async () => {
     printContainer.appendChild(slideDiv);
   });
 
-  // Filename normalization: remove characters not allowed in filenames
+  // Sanitize filename
   const rawTitle = extractTitle(editor.getContent());
   const cleanTitle = rawTitle.replace(/[\\/:*?"<>|]/g, '_').trim() || 'slides';
-  
-  // Get computed background color for the current theme
-  const tempDiv = document.createElement('div');
-  tempDiv.setAttribute('data-theme', currentTheme);
-  document.body.appendChild(tempDiv);
-  const bgColor = getComputedStyle(tempDiv).backgroundColor || '#08080d';
-  document.body.removeChild(tempDiv);
 
-  const opt = {
-    margin:       0,
-    filename:     `${cleanTitle}.pdf`,
-    image:        { type: 'jpeg', quality: 0.98 },
-    html2canvas:  { 
-      scale: 2, 
-      useCORS: true, 
-      backgroundColor: bgColor,
-      logging: true
-    },
-    jsPDF:        { unit: 'px', format: [1280, 720], orientation: 'landscape' },
-    pagebreak:    { mode: 'css', after: '.print-slide' }
-  };
+  // Give the browser time to layout the elements
+  await new Promise(r => setTimeout(r, 500));
 
-  // Wait for a few frames to ensure the DOM is painted
-  setTimeout(async () => {
-    try {
-      // Use the promise-based API correctly
-      await html2pdf().set(opt).from(printContainer).save();
-      showToast('PDF 내보내기 완료');
-    } catch (err) {
-      console.error('PDF Export Error:', err);
-      showToast('PDF 내보내기 중 오류가 발생했습니다.');
-    } finally {
-      printContainer.innerHTML = '';
-      printContainer.removeAttribute('data-theme');
-      printContainer.removeAttribute('data-layout');
+  try {
+    // Get all rendered slide elements
+    const slideEls = printContainer.querySelectorAll('.print-slide');
+    
+    // Create jsPDF instance (bundled with html2pdf)
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 720] });
+
+    for (let i = 0; i < slideEls.length; i++) {
+      const canvas = await html2canvas(slideEls[i], {
+        scale: 2,
+        useCORS: true,
+        width: 1280,
+        height: 720,
+        logging: false
+      });
+
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+
+      if (i > 0) {
+        doc.addPage([1280, 720], 'landscape');
+      }
+      doc.addImage(imgData, 'JPEG', 0, 0, 1280, 720);
     }
-  }, 1000); // Wait longer for full rendering
+
+    doc.save(`${cleanTitle}.pdf`);
+    showToast('PDF 내보내기 완료');
+  } catch (err) {
+    console.error('PDF Export Error:', err);
+    showToast('PDF 내보내기 중 오류가 발생했습니다.');
+  } finally {
+    printContainer.innerHTML = '';
+    printContainer.removeAttribute('data-theme');
+    printContainer.removeAttribute('data-layout');
+  }
 });
 
 // --- Preview Card Interactions ---

@@ -1,30 +1,45 @@
-# PDF 다운로드 오류 수정 계획
+# PDF 내보내기 근본 수정 계획
 
-본 계획은 PDF 내보내기 시 다운로드가 진행되지 않는 현상을 해결하고 프로세스의 안정성을 높이기 위한 절차를 담고 있습니다.
+본 계획은 `html2pdf`의 컨테이너 전체 캡처 방식을 폐기하고, `html2canvas` + `jsPDF`를 직접 조합하여 슬라이드를 개별 캡처하는 안정적인 방식으로 전면 교체합니다.
 
 ## 1. 접근 방식
-*   라이브러리 로드 상태를 명확히 체크하고 사용자에게 알림을 제공합니다.
-*   파일명 정규화 및 렌더링 대기 시간을 추가하여 캡처 및 다운로드 프로세스가 실패하지 않도록 보강합니다.
+*   `html2pdf().from(container).save()` → **폐기** (높이 0 버그 재현됨)
+*   `html2canvas(slideElement)` → `jsPDF.addImage()` 방식으로 **슬라이드별 개별 캡처** 후 PDF에 순차적으로 삽입.
+*   임시 렌더링 요소는 `body`에 `position: fixed` + `visibility: hidden`이 아닌, **`opacity: 0` + 고정 크기**로 부착하여 브라우저가 레이아웃을 완전히 계산하도록 보장.
 
 ---
 
 ## 2. 세부 구현 단계
 
-### 단계 1: 라이브러리 및 파일명 정규화 로직 보강 (`src/main.js`)
-*   `html2pdf` 존재 여부 체크 로직 추가.
-*   파일명에서 특수문자(`\ / : * ? " < > |`)를 제거하는 정규화 함수 적용.
+### 단계 1: CSS 수정 (`src/styles/editor.css`)
+*   `.print-container`를 `body`에 부착 가능한 형태로 변경.
+*   `top: -10000px` 제거 → `position: fixed; left: -9999px; opacity: 0` 사용.
+*   내부 `.print-slide`는 정확히 1280x720 고정.
 
-### 단계 2: 캡처 프로세스 안정화
-*   `print-container`에 데이터를 넣은 후 `requestAnimationFrame` 등을 사용하여 브라우저가 화면을 그릴 시간을 확보한 뒤 캡처 실행.
-*   `backgroundColor` 설정을 더 안전한 방식으로 변경 (CSS 변수 대신 계산된 스타일 값 직접 추출).
+### 단계 2: main.js 전면 수정
+*   `html2pdf().set(opt).from(container).save()` 제거.
+*   대신 `jsPDF`와 `html2canvas`(html2pdf 번들에 포함)를 직접 사용:
+    ```js
+    const { jsPDF } = window.jspdf; // html2pdf 번들에 포함
+    const doc = new jsPDF({ orientation: 'landscape', unit: 'px', format: [1280, 720] });
+    
+    for (let i = 0; i < slideElements.length; i++) {
+      const canvas = await html2canvas(slideElements[i], { scale: 2, useCORS: true });
+      const imgData = canvas.toDataURL('image/jpeg', 0.95);
+      if (i > 0) doc.addPage([1280, 720], 'landscape');
+      doc.addImage(imgData, 'JPEG', 0, 0, 1280, 720);
+    }
+    doc.save('filename.pdf');
+    ```
 
-### 단계 3: 테스트 및 디버깅 메시지
-*   실패 시 콘솔 로그 및 사용자 토스트 메시지 강화.
+### 단계 3: 검증
+*   슬라이드 7개 이상의 문서에서 테스트.
+*   다크/라이트 테마 모두 확인.
 
 ---
 
 ## 3. 체크리스트 (구현 단계)
 
-- [x] 단계 1: 파일명 정규화 및 라이브러리 체크 로직 추가
-- [x] 단계 2: 렌더링 대기 시간 도입으로 캡처 안정성 확보
-- [x] 단계 3: PDF 다운로드 최종 정상 작동 확인
+- [x] 단계 1: 캡처용 CSS 스타일 수정
+- [x] 단계 2: jsPDF + html2canvas 직접 조합으로 슬라이드별 개별 캡처 로직 구현
+- [/] 단계 3: 브라우저에서 실제 다운로드 및 내용 확인 테스트
