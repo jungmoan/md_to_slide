@@ -988,8 +988,10 @@
 /* Override display: contents for capture — html2canvas cannot capture display:contents */
 .print-container .slide-wrapper {
   display: block !important;
+  width: 100% !important;
   margin: 0 !important;
   padding: 0 !important;
+  box-sizing: border-box !important;
 }
 
 /* Fix Title Slide Gradient for html2canvas */
@@ -1004,7 +1006,11 @@
 .print-container blockquote {
   margin: 12px 0 !important;
   padding: 12px 24px !important;
+  width: 100% !important; /* Ensure blockquote takes full width of wrapper */
+  max-width: 80% !important; /* But still respect the max-width in center mode if applied */
+  box-sizing: border-box !important;
 }
+
 
 .print-container blockquote p {
   margin: 0 !important;
@@ -1017,6 +1023,15 @@
   align-items: center;
   justify-content: center;
   text-align: center;
+}
+
+/* Fix: If there's a wrapper, it also needs to be a flex container to center its children */
+.print-container[data-layout="center"] .slide-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 100% !important;
 }
 
 .print-container[data-layout="center"] .print-slide blockquote,

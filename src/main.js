@@ -513,7 +513,7 @@ btnExportPdf.addEventListener('click', async () => {
   const cleanTitle = rawTitle.replace(/[\\/:*?"<>|]/g, '_').trim() || 'slides';
 
   // Give the browser time to layout the elements
-  await new Promise(r => setTimeout(r, 500));
+  await new Promise(r => setTimeout(r, 1000));
 
   try {
     // Get all rendered slide elements
