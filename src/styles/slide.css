@@ -479,6 +479,10 @@
    Fragment Animations
    =========================== */
 
+.slide-wrapper {
+  display: contents;
+}
+
 .fragment {
   opacity: 0;
   transform: translateY(10px);
