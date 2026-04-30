@@ -12,7 +12,7 @@ import { Editor, DEFAULT_CONTENT, FULL_EXAMPLE_CONTENT } from './editor.js';
 import { Presenter } from './presenter.js';
 import { initThemeDropdown, applyTheme } from './theme.js';
 import {
-  saveContent, loadContent, exportFile, importFile,
+  saveContent, loadContent, exportFile, importFile, extractTitle,
   getAllDocuments, getDocument, getCurrentDocId, setCurrentDocId, createDocument, deleteDocument,
   getDocumentSettings, updateDocumentSettings, getDocumentHistory, saveHistorySnapshot, saveImage
 } from './storage.js';
