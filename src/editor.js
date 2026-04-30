@@ -456,6 +456,7 @@ export class Editor {
         <div class="slide-card" data-slide-index="${i}" data-offset="${slide.offset}" title="클릭하면 에디터 해당 위치로 이동합니다">
           <div class="slide-card-inner slide-content">${slide.html}</div>
           <span class="slide-card-number">${i + 1}</span>
+          <div class="slide-card-number-tag">Slide ${i + 1}</div>
           <button class="btn-play-from-here" data-slide-index="${i}" title="여기서부터 슬라이드쇼 시작">
             <svg viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
           </button>
@@ -470,6 +471,63 @@ export class Editor {
 
   getSlides() {
     return this.slides;
+  }
+
+  // --- Find & Replace ---
+  find(text, direction = 'next') {
+    if (!text) return -1;
+    const currentPos = this.textarea.selectionStart;
+    const content = this.textarea.value;
+    let foundPos = -1;
+
+    if (direction === 'next') {
+      foundPos = content.indexOf(text, currentPos + 1);
+      if (foundPos === -1) foundPos = content.indexOf(text); // Wrap around
+    } else {
+      foundPos = content.lastIndexOf(text, currentPos - 1);
+      if (foundPos === -1) foundPos = content.lastIndexOf(text); // Wrap around
+    }
+
+    if (foundPos !== -1) {
+      this.textarea.focus();
+      this.textarea.setSelectionRange(foundPos, foundPos + text.length);
+      
+      // Scroll to view
+      const lines = content.substring(0, foundPos).split('\n').length;
+      const lineHeight = 24;
+      this.textarea.scrollTop = Math.max(0, (lines - 5) * lineHeight);
+      return foundPos;
+    }
+    return -1;
+  }
+
+  replace(searchText, replaceText) {
+    const start = this.textarea.selectionStart;
+    const end = this.textarea.selectionEnd;
+    const value = this.textarea.value;
+    const selected = value.substring(start, end);
+
+    if (selected === searchText) {
+      this.saveHistory();
+      this.textarea.value = value.substring(0, start) + replaceText + value.substring(end);
+      this.textarea.setSelectionRange(start, start + replaceText.length);
+      this._debounceUpdate();
+      return true;
+    }
+    return false;
+  }
+
+  replaceAll(searchText, replaceText) {
+    if (!searchText) return 0;
+    this.saveHistory();
+    const value = this.textarea.value;
+    const parts = value.split(searchText);
+    const count = parts.length - 1;
+    if (count > 0) {
+      this.textarea.value = parts.join(replaceText);
+      this._debounceUpdate();
+    }
+    return count;
   }
 
   clear() {

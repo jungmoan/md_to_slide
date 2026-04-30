@@ -733,3 +733,189 @@
   90% { transform: translateY(0); opacity: 1; }
   100% { transform: translateY(-20px); opacity: 0; }
 }
+
+/* --- Search Bar --- */
+.search-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  background: var(--bg-secondary-glass);
+  backdrop-filter: blur(10px);
+  padding: 8px 16px;
+  border-bottom: 1px solid var(--border);
+  display: none; /* Toggle via JS */
+  flex-direction: column;
+  gap: 8px;
+  z-index: 100;
+  animation: slide-down 0.2s ease-out;
+}
+
+.search-bar.open {
+  display: flex;
+}
+
+.search-input-group, .replace-input-group {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.search-bar input {
+  flex: 1;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 6px 10px;
+  color: var(--text-primary);
+  font-size: var(--font-size-sm);
+}
+
+.search-count {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  min-width: 40px;
+  text-align: center;
+}
+
+.btn-close-search {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+/* --- Settings Sidebar --- */
+.settings-sidebar {
+  position: fixed;
+  top: 0;
+  right: -320px;
+  width: 320px;
+  height: 100%;
+  background: var(--bg-secondary-glass);
+  backdrop-filter: blur(20px);
+  border-left: 1px solid var(--border);
+  box-shadow: var(--shadow-xl);
+  z-index: 3000;
+  transition: right 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+.settings-sidebar.open {
+  right: 0;
+}
+
+.sidebar-header {
+  padding: 20px 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.btn-close-sidebar {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.5rem;
+  cursor: pointer;
+}
+
+.sidebar-content {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  overflow-y: auto;
+}
+
+.setting-group {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.setting-group label {
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.sidebar-select {
+  width: 100%;
+  padding: 8px 12px;
+  background: var(--bg-primary);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  color: var(--text-primary);
+}
+
+.range-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.range-wrapper input {
+  flex: 1;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  color: var(--text-primary) !important;
+}
+
+/* --- Slide Numbering & Line Height --- */
+.slide-card-number-tag {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  font-size: 10px;
+  color: var(--text-muted);
+  opacity: 0.7;
+  pointer-events: none;
+  display: none; /* Default hidden */
+}
+
+[data-show-number="true"] .slide-card-number-tag {
+  display: block;
+}
+
+[data-show-number="true"] .presenter-slide-number {
+  display: block;
+}
+
+.slide-content {
+  line-height: var(--slide-line-height, 1.6) !important;
+}
+
+/* For Presenter */
+.presenter-slide-number {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: 1.2rem;
+  color: rgba(255, 255, 255, 0.4);
+  font-weight: 300;
+  z-index: 5000;
+  display: none;
+}
+
+@keyframes slide-down {
+  from { transform: translateY(-10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}

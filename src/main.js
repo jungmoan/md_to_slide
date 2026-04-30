@@ -36,9 +36,31 @@ const btnLayout = document.getElementById('btn-layout');
 const btnImage = document.getElementById('btn-image');
 const btnCover = document.getElementById('btn-cover');
 const btnToc = document.getElementById('btn-toc');
+const btnBr = document.getElementById('btn-br');
 const tocDropdown = document.getElementById('toc-dropdown');
 const tocMenu = document.getElementById('toc-menu');
 const fileInput = document.getElementById('file-input');
+
+// --- Settings Sidebar Elements ---
+const btnSettings = document.getElementById('btn-settings');
+const settingsSidebar = document.getElementById('settings-sidebar');
+const btnCloseSidebar = document.getElementById('btn-close-sidebar');
+const themeSelectSidebar = document.getElementById('theme-select-sidebar');
+const btnLayoutSidebar = document.getElementById('btn-layout-sidebar');
+const inputLineHeight = document.getElementById('input-line-height');
+const labelLineHeight = document.getElementById('label-line-height');
+const checkShowNumber = document.getElementById('check-show-number');
+
+// --- Search Bar Elements ---
+const searchBar = document.getElementById('search-bar');
+const searchInput = document.getElementById('search-input');
+const searchCount = document.getElementById('search-count');
+const btnFindPrev = document.getElementById('btn-find-prev');
+const btnFindNext = document.getElementById('btn-find-next');
+const replaceInput = document.getElementById('replace-input');
+const btnReplace = document.getElementById('btn-replace');
+const btnReplaceAll = document.getElementById('btn-replace-all');
+const btnCloseSearch = document.getElementById('btn-close-search');
 
 // --- Modal Elements ---
 const historyModal = document.getElementById('history-modal');
@@ -52,6 +74,10 @@ const toastContainer = document.getElementById('toast-container');
 // Global State
 let currentLayout = 'default';
 let currentTheme = 'midnight';
+let currentSettings = {
+  lineHeight: 1.6,
+  showNumber: true
+};
 
 // --- Initialize ---
 const editor = new Editor(textareaEl, previewEl, slideCountEl, charCountEl, statusEl);
@@ -84,22 +110,39 @@ async function initApp() {
   const id = getCurrentDocId();
   if (id) {
     const settings = await getDocumentSettings(id);
-    currentTheme = settings.theme;
-    currentLayout = settings.layout;
+    currentTheme = settings.theme || 'midnight';
+    currentLayout = settings.layout || 'default';
+    currentSettings = settings.settings || { lineHeight: 1.6, showNumber: true };
   }
   
   applyTheme(currentTheme);
-  themeSelect.value = currentTheme;
+  themeSelectSidebar.value = currentTheme;
   applyLayoutUI(currentLayout);
+  applySettingsUI(currentSettings);
+}
+
+function applySettingsUI(settings) {
+  currentSettings = { ...currentSettings, ...settings };
+  
+  // Apply Line Height
+  document.documentElement.style.setProperty('--slide-line-height', currentSettings.lineHeight);
+  inputLineHeight.value = currentSettings.lineHeight;
+  labelLineHeight.textContent = currentSettings.lineHeight;
+  
+  // Apply Show Number
+  document.documentElement.setAttribute('data-show-number', currentSettings.showNumber);
+  checkShowNumber.checked = currentSettings.showNumber;
 }
 
 function applyLayoutUI(layout) {
   if (layout === 'center') {
     document.documentElement.setAttribute('data-layout', 'center');
-    btnLayout.querySelector('span').textContent = '좌상단';
+    btnLayoutSidebar.querySelector('span').textContent = '좌상단 정렬';
+    btnLayoutSidebar.classList.add('active');
   } else {
     document.documentElement.removeAttribute('data-layout');
-    btnLayout.querySelector('span').textContent = '가운데';
+    btnLayoutSidebar.querySelector('span').textContent = '가운데 정렬';
+    btnLayoutSidebar.classList.remove('active');
   }
 }
 
@@ -136,14 +179,46 @@ window.addEventListener('keydown', async (e) => {
   }
 });
 
-btnLayout.addEventListener('click', async () => {
+btnSettings.addEventListener('click', () => {
+  settingsSidebar.classList.add('open');
+});
+
+btnCloseSidebar.addEventListener('click', () => {
+  settingsSidebar.classList.remove('open');
+});
+
+// Sidebar Controls
+themeSelectSidebar.addEventListener('change', async (e) => {
+  currentTheme = e.target.value;
+  applyTheme(currentTheme);
+  const id = getCurrentDocId();
+  if (id) await updateDocumentSettings(id, currentTheme, currentLayout, currentSettings);
+});
+
+btnLayoutSidebar.addEventListener('click', async () => {
   currentLayout = currentLayout === 'center' ? 'default' : 'center';
   applyLayoutUI(currentLayout);
   const id = getCurrentDocId();
   if (id) {
-    await updateDocumentSettings(id, currentTheme, currentLayout);
+    await updateDocumentSettings(id, currentTheme, currentLayout, currentSettings);
   }
-  statusEl.textContent = currentLayout === 'center' ? '가운데 정렬 모드' : '좌상단 정렬 모드';
+});
+
+inputLineHeight.addEventListener('input', (e) => {
+  const val = e.target.value;
+  applySettingsUI({ lineHeight: val });
+});
+
+inputLineHeight.addEventListener('change', async () => {
+  const id = getCurrentDocId();
+  if (id) await updateDocumentSettings(id, currentTheme, currentLayout, currentSettings);
+});
+
+checkShowNumber.addEventListener('change', async (e) => {
+  const val = e.target.checked;
+  applySettingsUI({ showNumber: val });
+  const id = getCurrentDocId();
+  if (id) await updateDocumentSettings(id, currentTheme, currentLayout, currentSettings);
 });
 
 // Run Init
@@ -232,9 +307,12 @@ docsMenu.addEventListener('click', async (e) => {
       if (doc) {
         currentTheme = doc.theme || 'midnight';
         currentLayout = doc.layout || 'default';
+        currentSettings = doc.settings || { lineHeight: 1.6, showNumber: true };
+        
         applyTheme(currentTheme);
-        themeSelect.value = currentTheme;
+        themeSelectSidebar.value = currentTheme;
         applyLayoutUI(currentLayout);
+        applySettingsUI(currentSettings);
         
         editor.setContent(doc.content);
         statusEl.textContent = '문서를 불러왔습니다';
@@ -249,9 +327,12 @@ btnNew.addEventListener('click', async () => {
   setCurrentDocId(id);
   currentTheme = 'midnight';
   currentLayout = 'default';
+  currentSettings = { lineHeight: 1.6, showNumber: true };
+  
   applyTheme(currentTheme);
-  themeSelect.value = currentTheme;
+  themeSelectSidebar.value = currentTheme;
   applyLayoutUI(currentLayout);
+  applySettingsUI(currentSettings);
   
   editor.setContent(FULL_EXAMPLE_CONTENT);
   statusEl.textContent = '새 슬라이드를 생성했습니다';
@@ -298,6 +379,22 @@ btnCover.addEventListener('click', () => {
   editor.updatePreview();
   saveContent(textarea.value);
   statusEl.textContent = '제목(Cover) 슬라이드 매크로 삽입 완료';
+});
+
+// --- Br Macro ---
+btnBr.addEventListener('click', () => {
+  const textarea = textareaEl;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const value = textarea.value;
+
+  textarea.value = value.substring(0, start) + '<br>\n' + value.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + 5;
+  textarea.focus();
+
+  editor.updatePreview();
+  saveContent(textarea.value);
+  statusEl.textContent = '강제 개행(<br>) 삽입 완료';
 });
 
 // --- Image Macro ---
@@ -394,15 +491,64 @@ btnClear.addEventListener('click', () => {
 });
 
 // --- Keyboard Shortcuts ---
-document.addEventListener('keydown', (e) => {
+  // Cmd/Ctrl + F -> Find Bar
+  if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+    e.preventDefault();
+    searchBar.classList.add('open');
+    searchInput.focus();
+    searchInput.select();
+    return;
+  }
+
+  // Escape -> Close Sidebar or Search Bar
+  if (e.key === 'Escape') {
+    if (searchBar.classList.contains('open')) {
+      searchBar.classList.remove('open');
+      textareaEl.focus();
+    }
+    if (settingsSidebar.classList.contains('open')) {
+      settingsSidebar.classList.remove('open');
+    }
+  }
+
   // Ctrl+Enter → Start slideshow
   if (e.ctrlKey && e.key === 'Enter') {
     e.preventDefault();
     startPresentation();
     return;
   }
+});
 
-  // Removed duplicate Ctrl+S handling here
+// --- Find & Replace Bar Logic ---
+btnCloseSearch.addEventListener('click', () => {
+  searchBar.classList.remove('open');
+  textareaEl.focus();
+});
+
+searchInput.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    if (e.shiftKey) {
+      editor.find(searchInput.value, 'prev');
+    } else {
+      editor.find(searchInput.value, 'next');
+    }
+  }
+});
+
+btnFindNext.addEventListener('click', () => editor.find(searchInput.value, 'next'));
+btnFindPrev.addEventListener('click', () => editor.find(searchInput.value, 'prev'));
+
+btnReplace.addEventListener('click', () => {
+  const success = editor.replace(searchInput.value, replaceInput.value);
+  if (success) {
+    editor.find(searchInput.value, 'next');
+  }
+});
+
+btnReplaceAll.addEventListener('click', () => {
+  const count = editor.replaceAll(searchInput.value, replaceInput.value);
+  showToast(`${count}개의 항목이 치환되었습니다`);
 });
 
 // --- Drag & Drop / Paste for Images & Markdown ---
@@ -551,13 +697,17 @@ btnModalRestore.addEventListener('click', async () => {
     // 3. Apply selected version to local state
     currentTheme = selectedVersionData.theme || 'midnight';
     currentLayout = selectedVersionData.layout || 'default';
+    currentSettings = selectedVersionData.settings || { lineHeight: 1.6, showNumber: true };
+    
     applyTheme(currentTheme);
-    themeSelect.value = currentTheme;
+    themeSelectSidebar.value = currentTheme;
     applyLayoutUI(currentLayout);
+    applySettingsUI(currentSettings);
+    
     editor.setContent(selectedVersionData.content);
     
     // 4. Update DB for the target document
-    await updateDocumentSettings(idToRestore, currentTheme, currentLayout);
+    await updateDocumentSettings(idToRestore, currentTheme, currentLayout, currentSettings);
     await saveContent(selectedVersionData.content, currentTheme, currentLayout, idToRestore);
     
     statusEl.textContent = '선택한 버전으로 복원되었습니다';

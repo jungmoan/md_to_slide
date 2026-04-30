@@ -72,6 +72,7 @@ export class Presenter {
         <span class="hint-key"><kbd>F</kbd> 전체화면</span>
         <span class="hint-key"><kbd>Esc</kbd> 종료</span>
       </div>
+      <div class="presenter-slide-number" id="presenter-slide-number"></div>
     `;
 
     document.body.appendChild(this.overlay);
@@ -206,6 +207,12 @@ export class Presenter {
       // Update progress bar
       const progress = ((this.currentIndex + 1) / this.slides.length) * 100;
       this.progressEl.style.width = `${progress}%`;
+
+      // Update Slide Number Tag
+      const numberTag = this.overlay.querySelector('#presenter-slide-number');
+      if (numberTag) {
+        numberTag.textContent = `${this.currentIndex + 1}`;
+      }
 
       // Update button states
       this.prevBtn.disabled = this.currentIndex === 0;

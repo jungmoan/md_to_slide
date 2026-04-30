@@ -109,6 +109,10 @@ export async function saveDocument(id, content, theme, layout) {
     content, 
     theme: theme || existingDoc?.theme || 'midnight', 
     layout: layout || existingDoc?.layout || 'default', 
+    settings: existingDoc?.settings || {
+      lineHeight: 1.6,
+      showNumber: true
+    },
     updatedAt 
   };
 
@@ -182,15 +186,20 @@ export async function getDocumentSettings(id) {
   const doc = await getDocument(id);
   return {
     theme: doc?.theme || 'midnight',
-    layout: doc?.layout || 'default'
+    layout: doc?.layout || 'default',
+    settings: doc?.settings || {
+      lineHeight: 1.6,
+      showNumber: true
+    }
   };
 }
 
-export async function updateDocumentSettings(id, theme, layout) {
+export async function updateDocumentSettings(id, theme, layout, settings) {
   const doc = await getDocument(id);
   if (doc) {
-    doc.theme = theme || doc.theme;
-    doc.layout = layout || doc.layout;
+    if (theme) doc.theme = theme;
+    if (layout) doc.layout = layout;
+    if (settings) doc.settings = { ...doc.settings, ...settings };
     doc.updatedAt = Date.now();
     await txPromise('docs', 'readwrite', store => store.put(doc));
   }
