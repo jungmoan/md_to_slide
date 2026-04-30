@@ -23,7 +23,6 @@ const previewEl = document.getElementById('preview-content');
 const slideCountEl = document.getElementById('slide-count-label');
 const charCountEl = document.getElementById('char-count');
 const statusEl = document.getElementById('status-text');
-const themeSelect = document.getElementById('theme-select');
 const btnPresent = document.getElementById('btn-present');
 const btnImport = document.getElementById('btn-import');
 const btnExport = document.getElementById('btn-export');
@@ -32,7 +31,6 @@ const btnDocs = document.getElementById('btn-docs');
 const docsDropdownContainer = document.getElementById('docs-dropdown-container');
 const docsMenu = document.getElementById('docs-menu');
 const btnClear = document.getElementById('btn-clear');
-const btnLayout = document.getElementById('btn-layout');
 const btnImage = document.getElementById('btn-image');
 const btnCover = document.getElementById('btn-cover');
 const btnToc = document.getElementById('btn-toc');
@@ -97,14 +95,6 @@ async function initApp() {
   // Auto-save on input
   textareaEl.addEventListener('input', () => {
     saveContent(textareaEl.value, currentTheme, currentLayout);
-  });
-  
-  // Theme & Layout
-  initThemeDropdown(themeSelect, async (theme) => {
-    currentTheme = theme;
-    applyTheme(theme);
-    const id = getCurrentDocId();
-    if (id) await updateDocumentSettings(id, currentTheme, currentLayout);
   });
   
   const id = getCurrentDocId();

@@ -30,6 +30,9 @@
   --transition-normal: 300ms ease;
   --transition-slow: 500ms ease;
 
+  /* Slide Specific */
+  --slide-line-height: 1.6;
+
   /* Typography */
   --font-body: 'Noto Sans KR', system-ui, -apple-system, sans-serif;
   --font-mono: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
