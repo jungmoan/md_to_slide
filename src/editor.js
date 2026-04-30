@@ -350,7 +350,14 @@ export class Editor {
           }
         }
         
-        nodesToRemove.forEach(n => n.remove());
+        nodesToRemove.forEach(n => {
+          const parent = n.parentElement;
+          n.remove();
+          // If parent becomes empty (or just whitespace), remove it too to avoid layout gaps
+          if (parent && parent.tagName === 'P' && parent.innerHTML.trim() === '') {
+            parent.remove();
+          }
+        });
         finalHtml = temp.innerHTML;
         extraClass += ' slide-animate';
       }
