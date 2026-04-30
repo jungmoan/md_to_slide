@@ -483,6 +483,11 @@ btnExportMd.addEventListener('click', () => {
 });
 
 btnExportPdf.addEventListener('click', async () => {
+  if (typeof html2pdf === 'undefined') {
+    showToast('PDF 라이브러리를 로드 중입니다. 잠시 후 다시 시도해주세요.');
+    return;
+  }
+
   const slides = editor.slides;
   if (!slides || slides.length === 0) {
     showToast('내보낼 슬라이드가 없습니다.');
@@ -493,7 +498,6 @@ btnExportPdf.addEventListener('click', async () => {
 
   // Populate print container
   printContainer.innerHTML = '';
-  // Apply current theme and layout to the container
   printContainer.setAttribute('data-theme', currentTheme);
   printContainer.setAttribute('data-layout', currentLayout);
   
@@ -504,28 +508,38 @@ btnExportPdf.addEventListener('click', async () => {
     printContainer.appendChild(slideDiv);
   });
 
+  // Filename normalization: remove characters not allowed in filenames
+  const rawTitle = extractTitle(editor.getContent());
+  const cleanTitle = rawTitle.replace(/[\\/:*?"<>|]/g, '_').trim() || 'slides';
+  
+  const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#ffffff';
+
   const opt = {
     margin:       0,
-    filename:     `${extractTitle(editor.getContent())}.pdf`,
+    filename:     `${cleanTitle}.pdf`,
     image:        { type: 'jpeg', quality: 0.98 },
     html2canvas:  { 
       scale: 2, 
       useCORS: true, 
-      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-primary') 
+      backgroundColor: bgColor,
+      logging: false
     },
     jsPDF:        { unit: 'px', format: [1280, 720], orientation: 'landscape' },
     pagebreak:    { mode: 'avoid-all', before: '.print-slide' }
   };
 
-  try {
-    await html2pdf().set(opt).from(printContainer).save();
-    showToast('PDF 내보내기 완료');
-  } catch (err) {
-    console.error('PDF Export Error:', err);
-    showToast('PDF 내보내기 실패');
-  } finally {
-    printContainer.innerHTML = '';
-  }
+  // Wait for a few frames to ensure the DOM is painted
+  setTimeout(async () => {
+    try {
+      await html2pdf().set(opt).from(printContainer).save();
+      showToast('PDF 내보내기 완료');
+    } catch (err) {
+      console.error('PDF Export Error:', err);
+      showToast('PDF 내보내기 중 오류가 발생했습니다.');
+    } finally {
+      printContainer.innerHTML = '';
+    }
+  }, 300);
 });
 
 // --- Preview Card Interactions ---
