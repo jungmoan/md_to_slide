@@ -233,19 +233,8 @@ export class Presenter {
   }
 
   _initFragments() {
-    this.fragments = [];
+    this.fragments = Array.from(this.contentEl.querySelectorAll('.fragment'));
     this.fragmentIndex = -1;
-    
-    // Check if the current slide is an animated slide
-    const slideWrapper = this.contentEl.querySelector('.slide-animate');
-    if (slideWrapper) {
-      // Find elements to animate (e.g., list items, paragraphs, images)
-      const animatable = slideWrapper.querySelectorAll('li, p, img, blockquote');
-      animatable.forEach(el => {
-        el.classList.add('fragment');
-        this.fragments.push(el);
-      });
-    }
   }
 
   next() {

@@ -325,8 +325,33 @@ export class Editor {
       }
 
       if (trimmed.includes('<!-- animate -->')) {
-        extraClass += ' slide-animate';
-        finalHtml = finalHtml.replace(/<!--\s*animate\s*-->/g, '');
+        const temp = document.createElement('div');
+        temp.innerHTML = finalHtml;
+        
+        // Find the animate comment and mark subsequent elements as fragments
+        const iterator = document.createNodeIterator(temp, NodeFilter.SHOW_ALL);
+        let node;
+        let animateStarted = false;
+        const animatableTags = ['P', 'LI', 'IMG', 'BLOCKQUOTE', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6'];
+        
+        while (node = iterator.nextNode()) {
+          if (node.nodeType === Node.COMMENT_NODE && node.nodeValue.trim() === 'animate') {
+            animateStarted = true;
+            continue;
+          }
+          if (animateStarted && node.nodeType === Node.ELEMENT_NODE) {
+            if (animatableTags.includes(node.tagName)) {
+              // Only add fragment if not already inside a fragment
+              if (!node.closest('.fragment')) {
+                node.classList.add('fragment');
+              }
+            }
+          }
+        }
+        
+        // Remove the macro comment from HTML
+        finalHtml = temp.innerHTML.replace(/<!--\s*animate\s*-->/g, '');
+        extraClass += ' slide-animate'; // Keep class for potential styling, though logic moves to fragments
       }
 
       let isSplit = false;

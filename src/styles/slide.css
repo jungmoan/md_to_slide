@@ -479,19 +479,19 @@
    Fragment Animations
    =========================== */
 
-.slide-animate .fragment {
+.fragment {
   opacity: 0;
   transform: translateY(10px);
 }
 
-.slide-animate .fragment.visible {
+.fragment.visible {
   opacity: 1;
   transform: translateY(0);
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 /* Skip fragment transition in preview cards */
-.slide-card-inner .slide-animate .fragment {
+.slide-card-inner .fragment {
   opacity: 1 !important;
   transform: none !important;
   transition: none !important;

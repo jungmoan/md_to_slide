@@ -35,6 +35,7 @@ const btnImage = document.getElementById('btn-image');
 const btnCover = document.getElementById('btn-cover');
 const btnToc = document.getElementById('btn-toc');
 const btnBr = document.getElementById('btn-br');
+const btnAnimate = document.getElementById('btn-animate');
 const tocDropdown = document.getElementById('toc-dropdown');
 const tocMenu = document.getElementById('toc-menu');
 const fileInput = document.getElementById('file-input');
@@ -385,6 +386,23 @@ btnBr.addEventListener('click', () => {
   editor.updatePreview();
   saveContent(textarea.value);
   statusEl.textContent = '강제 개행(<br>) 삽입 완료';
+});
+
+// --- Animate Macro ---
+btnAnimate.addEventListener('click', () => {
+  const textarea = textareaEl;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const value = textarea.value;
+
+  const macro = '\n<!-- animate -->\n';
+  textarea.value = value.substring(0, start) + macro + value.substring(end);
+  textarea.selectionStart = textarea.selectionEnd = start + macro.length;
+  textarea.focus();
+
+  editor.updatePreview();
+  saveContent(textarea.value);
+  statusEl.textContent = '애니메이션 매크로 삽입 완료';
 });
 
 // --- Image Macro ---
