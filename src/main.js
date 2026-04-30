@@ -61,6 +61,13 @@ const btnReplace = document.getElementById('btn-replace');
 const btnReplaceAll = document.getElementById('btn-replace-all');
 const btnCloseSearch = document.getElementById('btn-close-search');
 
+// --- Export Elements ---
+const btnExportTrigger = document.getElementById('btn-export-trigger');
+const exportMenu = document.getElementById('export-menu');
+const btnExportMd = document.getElementById('btn-export-md');
+const btnExportPdf = document.getElementById('btn-export-pdf');
+const printContainer = document.getElementById('print-container');
+
 // --- Modal Elements ---
 const historyModal = document.getElementById('history-modal');
 const modalHistoryList = document.getElementById('modal-history-list');
@@ -452,18 +459,56 @@ fileInput.addEventListener('change', async (e) => {
   try {
     const text = await importFile(file);
     editor.setContent(text);
-    saveContent(text);
-    statusEl.textContent = `"${file.name}" 가져오기 완료`;
+    saveContent(text, currentTheme, currentLayout, currentSettings);
+    showToast(`"${file.name}" 가져오기 완료`);
   } catch (err) {
-    statusEl.textContent = '파일 가져오기 실패';
+    showToast('파일 가져오기 실패');
   }
   fileInput.value = '';
 });
 
-// --- Export ---
-btnExport.addEventListener('click', () => {
+// --- Export Logic ---
+btnExportTrigger.addEventListener('click', (e) => {
+  e.stopPropagation();
+  exportMenu.classList.toggle('open');
+});
+
+document.addEventListener('click', () => {
+  exportMenu.classList.remove('open');
+});
+
+btnExportMd.addEventListener('click', () => {
   exportFile(editor.getContent());
-  statusEl.textContent = '파일 내보내기 완료';
+  showToast('마크다운 파일 내보내기 완료');
+});
+
+btnExportPdf.addEventListener('click', async () => {
+  const slides = editor.slides;
+  if (!slides || slides.length === 0) {
+    showToast('내보낼 슬라이드가 없습니다.');
+    return;
+  }
+
+  // Populate print container
+  printContainer.innerHTML = '';
+  // Apply current theme and layout classes to print slides
+  const layoutAttr = currentLayout === 'center' ? 'data-layout="center"' : '';
+  
+  slides.forEach(slide => {
+    const slideDiv = document.createElement('div');
+    slideDiv.className = 'print-slide slide-content';
+    slideDiv.innerHTML = slide.html;
+    printContainer.appendChild(slideDiv);
+  });
+
+  // Apply current theme to print container for correct colors
+  document.body.setAttribute('data-print-theme', currentTheme);
+  
+  // Wait a bit for images to load or styles to settle
+  setTimeout(() => {
+    window.print();
+    printContainer.innerHTML = '';
+  }, 500);
 });
 
 // --- Preview Card Interactions ---

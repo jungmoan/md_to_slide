@@ -45,14 +45,20 @@
             <line x1="12" y1="15" x2="12" y2="3" />
           </svg>
         </button>
-        <button class="btn btn-ghost" id="btn-export" title="마크다운 파일 내보내기 (Ctrl+S)">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-            stroke-linejoin="round">
-            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
-            <polyline points="17 8 12 3 7 8" />
-            <line x1="12" y1="3" x2="12" y2="15" />
-          </svg>
-        </button>
+        <div class="export-dropdown-container" id="export-dropdown-container" style="position: relative;">
+          <button class="btn btn-ghost" id="btn-export-trigger" title="파일 내보내기">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+              stroke-linejoin="round">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+          </button>
+          <div class="export-menu" id="export-menu">
+            <button class="export-item" id="btn-export-md">마크다운 (.md)</button>
+            <button class="export-item" id="btn-export-pdf">PDF 파일 (.pdf)</button>
+          </div>
+        </div>
       </div>
       <div class="toolbar-right">
         <button class="btn btn-ghost" id="btn-settings" title="설정 (테마, 레이아웃, 줄 간격 등)">
@@ -200,6 +206,9 @@
 
   <!-- Toast Notifications -->
   <div id="toast-container" class="toast-container"></div>
+
+  <!-- PDF Print Container -->
+  <div id="print-container" class="print-container"></div>
 
   <!-- Settings Sidebar -->
   <div id="settings-sidebar" class="settings-sidebar">
