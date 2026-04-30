@@ -12,8 +12,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "concurrently": "^9.2.1",
     "highlight.js": "^11.11.1",
     "marked": "^18.0.2",
+    "nodemon": "^3.1.14",
     "vite": "^8.0.10"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "cors": "^2.8.6",
+    "express": "^5.2.1"
   }
 }
