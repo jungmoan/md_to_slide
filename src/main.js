@@ -527,16 +527,16 @@ btnExportPdf.addEventListener('click', async () => {
       scale: 2, 
       useCORS: true, 
       backgroundColor: bgColor,
-      letterRendering: true,
-      logging: true // Enable logging to see what's happening
+      logging: true
     },
     jsPDF:        { unit: 'px', format: [1280, 720], orientation: 'landscape' },
-    pagebreak:    { mode: 'avoid-all', before: '.print-slide' }
+    pagebreak:    { mode: 'css', after: '.print-slide' }
   };
 
   // Wait for a few frames to ensure the DOM is painted
   setTimeout(async () => {
     try {
+      // Use the promise-based API correctly
       await html2pdf().set(opt).from(printContainer).save();
       showToast('PDF 내보내기 완료');
     } catch (err) {
@@ -544,8 +544,10 @@ btnExportPdf.addEventListener('click', async () => {
       showToast('PDF 내보내기 중 오류가 발생했습니다.');
     } finally {
       printContainer.innerHTML = '';
+      printContainer.removeAttribute('data-theme');
+      printContainer.removeAttribute('data-layout');
     }
-  }, 500);
+  }, 1000); // Wait longer for full rendering
 });
 
 // --- Preview Card Interactions ---

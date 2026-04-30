@@ -962,13 +962,11 @@
 /* --- PDF Capture Styles --- */
 .print-container {
   position: absolute;
-  top: 0;
+  top: -10000px; /* Off-screen but renderable */
   left: 0;
   width: 1280px;
   z-index: -9999;
   background: var(--bg-primary);
-  pointer-events: none;
-  opacity: 0.001; /* Minimal opacity to ensure rendering */
 }
 
 .print-slide {
@@ -976,12 +974,19 @@
   height: 720px;
   position: relative;
   overflow: hidden;
-  display: flex;
-  flex-direction: column;
+  display: block; /* Ensure it's a block for capture */
   padding: 60px 80px;
   background: var(--bg-primary);
   color: var(--text-primary);
 }
+
+/* Override display: contents for capture as it breaks html2canvas */
+.print-container .slide-wrapper {
+  display: block !important;
+  width: 100%;
+  height: 100%;
+}
+
 
 /* Ensure layout and themes apply to the capture container */
 .print-container[data-layout="center"] .print-slide {
