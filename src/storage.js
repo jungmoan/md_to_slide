@@ -1,49 +1,6 @@
-// storage.js — IndexedDB 관리
+// storage.js — Backend API 기반 데이터 관리 (SQLite)
 
-const DB_NAME = 'md_slide_db';
-const DB_VERSION = 1;
 const CURRENT_ID_KEY = 'md_slide_current_id';
-
-let dbInstance = null;
-
-function initDB() {
-  return new Promise((resolve, reject) => {
-    if (dbInstance) return resolve(dbInstance);
-
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-
-    request.onerror = (e) => reject(e.target.error);
-
-    request.onsuccess = (e) => {
-      dbInstance = e.target.result;
-      resolve(dbInstance);
-    };
-
-    request.onupgradeneeded = (e) => {
-      const db = e.target.result;
-      
-      // Documents store
-      if (!db.objectStoreNames.contains('docs')) {
-        db.createObjectStore('docs', { keyPath: 'id' });
-      }
-      
-      // History (Versioning) store
-      if (!db.objectStoreNames.contains('history')) {
-        const historyStore = db.createObjectStore('history', { keyPath: 'historyId' });
-        historyStore.createIndex('docId', 'docId', { unique: false });
-      }
-
-      // Images store
-      if (!db.objectStoreNames.contains('images')) {
-        db.createObjectStore('images', { keyPath: 'id' });
-      }
-    };
-  });
-}
-
-function generateId() {
-  return Date.now().toString(36) + Math.random().toString(36).substr(2);
-}
 
 export function extractTitle(content) {
   if (!content) return '제목 없는 슬라이드';
@@ -51,38 +8,31 @@ export function extractTitle(content) {
   return match ? match[1].trim() : '제목 없는 슬라이드';
 }
 
-// --- DB Helper ---
-function txPromise(storeName, mode, callback) {
-  return initDB().then(db => {
-    return new Promise((resolve, reject) => {
-      const tx = db.transaction(storeName, mode);
-      const store = tx.objectStore(storeName);
-      let result;
-      
-      tx.oncomplete = () => resolve(result);
-      tx.onerror = (e) => reject(e.target.error);
-      
-      try {
-        const req = callback(store);
-        if (req) {
-          req.onsuccess = (e) => { result = e.target.result; };
-        }
-      } catch (e) {
-        reject(e);
-      }
-    });
-  });
+function generateId() {
+  return Date.now().toString(36) + Math.random().toString(36).substr(2);
 }
 
 // --- 다중 문서 API ---
 export async function getAllDocuments() {
-  const docs = await txPromise('docs', 'readonly', store => store.getAll());
-  return docs.sort((a, b) => b.updatedAt - a.updatedAt);
+  try {
+    const response = await fetch('/api/docs');
+    return await response.json();
+  } catch (e) {
+    console.error('Failed to fetch documents:', e);
+    return [];
+  }
 }
 
 export async function getDocument(id) {
   if (!id) return null;
-  return await txPromise('docs', 'readonly', store => store.get(id));
+  try {
+    const response = await fetch(`/api/docs/${id}`);
+    if (response.status === 404) return null;
+    return await response.json();
+  } catch (e) {
+    console.error('Failed to get document:', e);
+    return null;
+  }
 }
 
 export function getCurrentDocId() {
@@ -102,35 +52,55 @@ export async function saveDocument(id, content, theme, layout) {
   const title = extractTitle(content);
   const updatedAt = Date.now();
   
+  // 기존 설정 유지를 위해 먼저 조회
   const existingDoc = await getDocument(id);
-  const newDoc = { 
-    id, 
-    title, 
-    content, 
-    theme: theme || existingDoc?.theme || 'midnight', 
-    layout: layout || existingDoc?.layout || 'default', 
-    settings: existingDoc?.settings || {
-      lineHeight: 1.6,
-      showNumber: true
-    },
-    updatedAt 
+  const settings = existingDoc?.settings || {
+    lineHeight: 1.6,
+    showNumber: true
   };
 
-  // Save document (Update latest state)
-  await txPromise('docs', 'readwrite', store => store.put(newDoc));
+  const payload = {
+    id,
+    title,
+    content,
+    theme: theme || existingDoc?.theme || 'midnight',
+    layout: layout || existingDoc?.layout || 'default',
+    settings,
+    updatedAt
+  };
+
+  try {
+    await fetch(`/api/docs/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.error('Failed to save document:', e);
+  }
 }
 
 export async function saveHistorySnapshot(id, content, theme, layout) {
   if (!id) return;
   const historyId = generateId();
-  await txPromise('history', 'readwrite', store => store.put({
+  const payload = {
     historyId,
     docId: id,
     content,
     theme: theme || 'midnight',
     layout: layout || 'default',
     savedAt: Date.now()
-  }));
+  };
+
+  try {
+    await fetch('/api/history', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+  } catch (e) {
+    console.error('Failed to save history:', e);
+  }
 }
 
 export async function createDocument(content) {
@@ -141,20 +111,11 @@ export async function createDocument(content) {
 }
 
 export async function deleteDocument(id) {
-  await txPromise('docs', 'readwrite', store => store.delete(id));
-  
-  // Optionally delete history related to this doc
-  const db = await initDB();
-  const tx = db.transaction('history', 'readwrite');
-  const index = tx.objectStore('history').index('docId');
-  const req = index.openCursor(IDBKeyRange.only(id));
-  req.onsuccess = (e) => {
-    const cursor = e.target.result;
-    if (cursor) {
-      cursor.delete();
-      cursor.continue();
-    }
-  };
+  try {
+    await fetch(`/api/docs/${id}`, { method: 'DELETE' });
+  } catch (e) {
+    console.error('Failed to delete document:', e);
+  }
 }
 
 export async function loadContent() {
@@ -181,7 +142,6 @@ export async function saveContent(markdown, theme, layout, id) {
 }
 
 // --- 문서별 설정 (Theme/Layout) ---
-// We now get them per document
 export async function getDocumentSettings(id) {
   const doc = await getDocument(id);
   return {
@@ -201,40 +161,60 @@ export async function updateDocumentSettings(id, theme, layout, settings) {
     if (layout) doc.layout = layout;
     if (settings) doc.settings = { ...doc.settings, ...settings };
     doc.updatedAt = Date.now();
-    await txPromise('docs', 'readwrite', store => store.put(doc));
+    
+    try {
+      await fetch(`/api/docs/${id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(doc)
+      });
+    } catch (e) {
+      console.error('Failed to update settings:', e);
+    }
   }
 }
 
 // History API
 export async function getDocumentHistory(docId) {
   if (!docId) return [];
-  const db = await initDB();
-  return new Promise((resolve, reject) => {
-    const tx = db.transaction('history', 'readonly');
-    const store = tx.objectStore('history');
-    const index = store.index('docId');
-    const req = index.getAll(IDBKeyRange.only(docId));
-    req.onsuccess = (e) => {
-      const result = e.target.result || [];
-      resolve(result.sort((a, b) => b.savedAt - a.savedAt));
-    };
-    req.onerror = (e) => reject(e.target.error);
-  });
+  try {
+    const response = await fetch(`/api/history/${docId}`);
+    return await response.json();
+  } catch (e) {
+    console.error('Failed to fetch history:', e);
+    return [];
+  }
 }
 
 // --- Images ---
 export async function saveImage(base64Data) {
   const id = generateId();
-  await txPromise('images', 'readwrite', store => store.put({ id, base64Data }));
-  return id;
+  try {
+    await fetch('/api/images', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, base64Data })
+    });
+    return id;
+  } catch (e) {
+    console.error('Failed to save image:', e);
+    return null;
+  }
 }
 
 export async function getImage(id) {
-  const img = await txPromise('images', 'readonly', store => store.get(id));
-  return img ? img.base64Data : null;
+  try {
+    const response = await fetch(`/api/images/${id}`);
+    if (response.status === 404) return null;
+    const data = await response.json();
+    return data.base64Data;
+  } catch (e) {
+    console.error('Failed to get image:', e);
+    return null;
+  }
 }
 
-// --- 내보내기 & 가져오기 ---
+// --- 내보내기 & 가져오기 (클라이언트 전용) ---
 export function exportFile(markdown, filename = 'slides.md') {
   const blob = new Blob([markdown], { type: 'text/markdown;charset=utf-8' });
   const url = URL.createObjectURL(blob);
