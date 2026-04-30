@@ -961,13 +961,14 @@
 
 /* --- PDF Capture Styles --- */
 .print-container {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   width: 1280px;
-  transform: translateX(-200%); /* Off-screen */
-  z-index: -1000;
+  z-index: -9999;
   background: var(--bg-primary);
+  pointer-events: none;
+  opacity: 0.001; /* Minimal opacity to ensure rendering */
 }
 
 .print-slide {

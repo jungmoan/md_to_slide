@@ -512,7 +512,12 @@ btnExportPdf.addEventListener('click', async () => {
   const rawTitle = extractTitle(editor.getContent());
   const cleanTitle = rawTitle.replace(/[\\/:*?"<>|]/g, '_').trim() || 'slides';
   
-  const bgColor = getComputedStyle(document.documentElement).getPropertyValue('--bg-primary').trim() || '#ffffff';
+  // Get computed background color for the current theme
+  const tempDiv = document.createElement('div');
+  tempDiv.setAttribute('data-theme', currentTheme);
+  document.body.appendChild(tempDiv);
+  const bgColor = getComputedStyle(tempDiv).backgroundColor || '#08080d';
+  document.body.removeChild(tempDiv);
 
   const opt = {
     margin:       0,
@@ -522,7 +527,8 @@ btnExportPdf.addEventListener('click', async () => {
       scale: 2, 
       useCORS: true, 
       backgroundColor: bgColor,
-      logging: false
+      letterRendering: true,
+      logging: true // Enable logging to see what's happening
     },
     jsPDF:        { unit: 'px', format: [1280, 720], orientation: 'landscape' },
     pagebreak:    { mode: 'avoid-all', before: '.print-slide' }
@@ -539,7 +545,7 @@ btnExportPdf.addEventListener('click', async () => {
     } finally {
       printContainer.innerHTML = '';
     }
-  }, 300);
+  }, 500);
 });
 
 // --- Preview Card Interactions ---
