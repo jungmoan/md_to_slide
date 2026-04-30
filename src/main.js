@@ -489,10 +489,13 @@ btnExportPdf.addEventListener('click', async () => {
     return;
   }
 
+  showToast('PDF 생성 중... 잠시만 기다려주세요.');
+
   // Populate print container
   printContainer.innerHTML = '';
-  // Apply current theme and layout classes to print slides
-  const layoutAttr = currentLayout === 'center' ? 'data-layout="center"' : '';
+  // Apply current theme and layout to the container
+  printContainer.setAttribute('data-theme', currentTheme);
+  printContainer.setAttribute('data-layout', currentLayout);
   
   slides.forEach(slide => {
     const slideDiv = document.createElement('div');
@@ -501,14 +504,28 @@ btnExportPdf.addEventListener('click', async () => {
     printContainer.appendChild(slideDiv);
   });
 
-  // Apply current theme to print container for correct colors
-  document.body.setAttribute('data-print-theme', currentTheme);
-  
-  // Wait a bit for images to load or styles to settle
-  setTimeout(() => {
-    window.print();
+  const opt = {
+    margin:       0,
+    filename:     `${extractTitle(editor.getContent())}.pdf`,
+    image:        { type: 'jpeg', quality: 0.98 },
+    html2canvas:  { 
+      scale: 2, 
+      useCORS: true, 
+      backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--bg-primary') 
+    },
+    jsPDF:        { unit: 'px', format: [1280, 720], orientation: 'landscape' },
+    pagebreak:    { mode: 'avoid-all', before: '.print-slide' }
+  };
+
+  try {
+    await html2pdf().set(opt).from(printContainer).save();
+    showToast('PDF 내보내기 완료');
+  } catch (err) {
+    console.error('PDF Export Error:', err);
+    showToast('PDF 내보내기 실패');
+  } finally {
     printContainer.innerHTML = '';
-  }, 500);
+  }
 });
 
 // --- Preview Card Interactions ---

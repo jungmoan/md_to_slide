@@ -959,49 +959,40 @@
   color: var(--accent);
 }
 
-/* --- PDF Print Styles --- */
+/* --- PDF Capture Styles --- */
 .print-container {
-  display: none;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 1280px;
+  transform: translateX(-200%); /* Off-screen */
+  z-index: -1000;
+  background: var(--bg-primary);
 }
 
-@media print {
-  @page {
-    size: 1280px 720px;
-    margin: 0;
-  }
+.print-slide {
+  width: 1280px;
+  height: 720px;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  padding: 60px 80px;
+  background: var(--bg-primary);
+  color: var(--text-primary);
+}
 
-  body * {
-    visibility: hidden;
-  }
+/* Ensure layout and themes apply to the capture container */
+.print-container[data-layout="center"] .print-slide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
 
-  .print-container, .print-container * {
-    visibility: visible;
-  }
-
-  .print-container {
-    display: block !important;
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
-    background: var(--bg-primary);
-    z-index: 99999;
-  }
-
-  .print-slide {
-    width: 1280px;
-    height: 720px;
-    page-break-after: always;
-    position: relative;
-    overflow: hidden;
-    display: flex;
-    flex-direction: column;
-    padding: 60px 80px;
-  }
-
-  /* Force background colors in print */
-  * {
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
+.print-container[data-layout="center"] .print-slide blockquote,
+.print-container[data-layout="center"] .print-slide ul,
+.print-container[data-layout="center"] .print-slide ol {
+  text-align: left;
 }
